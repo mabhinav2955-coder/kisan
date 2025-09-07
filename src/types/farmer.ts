@@ -64,3 +64,9 @@ export interface ChatMessage {
   language: 'english' | 'malayalam';
   type: 'text' | 'voice';
 }
+
+export interface AuthUser {
+  id: string;
+  phone: string;
+  isAuthenticated: boolean;
+}

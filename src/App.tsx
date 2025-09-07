@@ -14,11 +14,13 @@ import SchemeAlerts from './components/SchemeAlerts';
 import NotificationCenter from './components/NotificationCenter';
 import CropDiagnosis from './components/CropDiagnosis';
 import CommunityForum from './components/CommunityForum';
+import AuthPage from './components/AuthPage';
 import EmptyState from './components/EmptyState';
-import { mockFarmer, mockFarm, mockActivities, mockAdvisories } from './data/mockData';
+import { mockFarmer, mockFarm, mockActivities, mockAdvisories, sampleFarmers } from './data/mockData';
 import { Activity, Advisory, Farmer } from './types/farmer';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -29,6 +31,17 @@ function App() {
   const [activities, setActivities] = useState<Activity[]>(mockActivities);
   const [advisories] = useState<Advisory[]>(mockAdvisories);
   const [farmer, setFarmer] = useState<Farmer>(mockFarmer);
+
+  const handleLogin = (loggedInFarmer: Farmer) => {
+    setFarmer(loggedInFarmer);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setFarmer(mockFarmer);
+    setActiveTab('dashboard');
+  };
 
   const handleQuickAction = (action: string) => {
     switch (action) {
@@ -175,10 +188,15 @@ function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <AuthPage onLogin={handleLogin} sampleFarmers={sampleFarmers} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
         farmerName={mockFarmer.name}
+        onLogout={handleLogout}
         onMenuClick={() => setIsMenuOpen(true)}
         onChatClick={() => setIsChatOpen(true)}
         onNotificationClick={() => setIsNotificationOpen(true)}

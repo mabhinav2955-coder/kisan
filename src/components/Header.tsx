@@ -1,15 +1,16 @@
 import React from 'react';
-import { Menu, Bell, User, MessageCircle, Wifi, WifiOff } from 'lucide-react';
+import { Menu, Bell, User, MessageCircle, Wifi, WifiOff, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   farmerName: string;
+  onLogout: () => void;
   onMenuClick: () => void;
   onChatClick: () => void;
   onNotificationClick: () => void;
   unreadNotifications: number;
 }
 
-export default function Header({ farmerName, onMenuClick, onChatClick, onNotificationClick, unreadNotifications }: HeaderProps) {
+export default function Header({ farmerName, onLogout, onMenuClick, onChatClick, onNotificationClick, unreadNotifications }: HeaderProps) {
   const [isOnline] = React.useState(true);
 
   return (
@@ -64,6 +65,15 @@ export default function Header({ farmerName, onMenuClick, onChatClick, onNotific
                 {isOnline ? 'Online' : 'Offline'}
               </span>
             </div>
+            
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-md text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+            
             <div className="flex items-center space-x-2 pl-3 border-l border-gray-200">
               <div className="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
                 <User className="h-5 w-5 text-gray-600" />

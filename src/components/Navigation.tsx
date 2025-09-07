@@ -34,11 +34,12 @@ const navigationItems = [
 ];
 
 export default function Navigation({ isOpen, onClose, activeTab, onTabChange }: NavigationProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden">
-      <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl">
+    <>
+      {isOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={onClose}></div>}
+      <div className={`fixed inset-y-0 left-0 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 lg:hidden ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center space-x-3">
             <div className="h-8 w-8 bg-green-600 rounded-full flex items-center justify-center">
@@ -91,6 +92,6 @@ export default function Navigation({ isOpen, onClose, activeTab, onTabChange }: 
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

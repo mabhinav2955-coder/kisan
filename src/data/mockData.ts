@@ -10,6 +10,45 @@ export const mockFarmer: Farmer = {
   profileComplete: true
 };
 
+export const sampleFarmers: Farmer[] = [
+  {
+    id: '1',
+    name: 'രാജേഷ് കുമാർ (Rajesh Kumar)',
+    phone: '+91 9876543210',
+    village: 'കുമരകം (Kumarakom)',
+    district: 'കോട്ടയം (Kottayam)',
+    registrationDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    profileComplete: true
+  },
+  {
+    id: '2',
+    name: 'സുധ കുമാരി (Sudha Kumari)',
+    phone: '+91 9876543211',
+    village: 'വയനാട് (Wayanad)',
+    district: 'വയനാട് (Wayanad)',
+    registrationDate: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    profileComplete: true
+  },
+  {
+    id: '3',
+    name: 'അജയ് കുമാർ (Ajay Kumar)',
+    phone: '+91 9876543212',
+    village: 'ആലപ്പുഴ (Alappuzha)',
+    district: 'ആലപ്പുഴ (Alappuzha)',
+    registrationDate: new Date(Date.now() - 150 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    profileComplete: true
+  },
+  {
+    id: '4',
+    name: 'പ്രിയ നായർ (Priya Nair)',
+    phone: '+91 9876543213',
+    village: 'തൃശ്ശൂർ (Thrissur)',
+    district: 'തൃശ്ശൂർ (Thrissur)',
+    registrationDate: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    profileComplete: true
+  }
+];
+
 export const mockCrops: Crop[] = [
   {
     id: '1',
