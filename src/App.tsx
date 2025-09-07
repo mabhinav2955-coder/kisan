@@ -16,7 +16,7 @@ import CropDiagnosis from './components/CropDiagnosis';
 import CommunityForum from './components/CommunityForum';
 import AuthPage from './components/AuthPage';
 import EmptyState from './components/EmptyState';
-import { sampleFarmers, getFarmerData, setCurrentFarmer } from './data/mockData';
+import { mockFarmer, mockFarm, mockActivities, mockAdvisories, sampleFarmers } from './data/mockData';
 import { Activity, Advisory, Farmer } from './types/farmer';
 
 function App() {
@@ -28,24 +28,18 @@ function App() {
   const [isActivityLoggerOpen, setIsActivityLoggerOpen] = useState(false);
   const [isCropDiagnosisOpen, setIsCropDiagnosisOpen] = useState(false);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
-  const [farmer, setFarmer] = useState<Farmer>(sampleFarmers[0]);
-  const [currentFarmerData, setCurrentFarmerData] = useState(getFarmerData('1'));
-  const [activities, setActivities] = useState<Activity[]>(currentFarmerData.activities);
+  const [activities, setActivities] = useState<Activity[]>(mockActivities);
+  const [advisories] = useState<Advisory[]>(mockAdvisories);
+  const [farmer, setFarmer] = useState<Farmer>(mockFarmer);
 
   const handleLogin = (loggedInFarmer: Farmer) => {
-    setCurrentFarmer(loggedInFarmer.id);
-    const farmerData = getFarmerData(loggedInFarmer.id);
-    setCurrentFarmerData(farmerData);
-    setActivities(farmerData.activities);
     setFarmer(loggedInFarmer);
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setFarmer(sampleFarmers[0]);
-    setCurrentFarmerData(getFarmerData('1'));
-    setActivities(getFarmerData('1').activities);
+    setFarmer(mockFarmer);
     setActiveTab('dashboard');
   };
 
@@ -91,7 +85,7 @@ function App() {
     const activity: Activity = {
       ...newActivity,
       id: Date.now().toString(),
-      farmerId: farmer.id
+      farmerId: mockFarmer.id
     };
     setActivities(prev => [activity, ...prev]);
   };
@@ -106,9 +100,9 @@ function App() {
       case 'dashboard':
         return (
           <Dashboard
-            farm={currentFarmerData.farm}
+            farm={mockFarm}
             activities={activities}
-            advisories={currentFarmerData.advisories}
+            advisories={advisories}
             onQuickAction={handleQuickAction}
             onAdvisoryAction={handleAdvisoryAction}
             onEditFarm={() => alert('Farm edit feature would be implemented here')}
@@ -121,7 +115,7 @@ function App() {
       case 'farm':
         return <CropCalendar />;
       case 'progress':
-        return <ProgressTracker activities={activities} crops={currentFarmerData.farm.crops} />;
+        return <ProgressTracker activities={activities} crops={mockFarm.crops} />;
       case 'schemes':
         return <SchemeAlerts />;
       case 'knowledge':
@@ -201,12 +195,12 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
-        farmerName={farmer.name}
+        farmerName={mockFarmer.name}
         onLogout={handleLogout}
         onMenuClick={() => setIsMenuOpen(true)}
         onChatClick={() => setIsChatOpen(true)}
         onNotificationClick={() => setIsNotificationOpen(true)}
-        unreadNotifications={currentFarmerData.advisories.filter(a => a.actionRequired).length}
+        unreadNotifications={advisories.filter(a => a.actionRequired).length}
       />
       
       <Navigation
@@ -244,7 +238,7 @@ function App() {
         isOpen={isActivityLoggerOpen}
         onClose={() => setIsActivityLoggerOpen(false)}
         onSave={handleSaveActivity}
-        crops={currentFarmerData.farm.crops}
+        crops={mockFarm.crops}
       />
 
       {/* Floating Chat Button */}
