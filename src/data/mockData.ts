@@ -1,8 +1,5 @@
 import { Farmer, Farm, Activity, Advisory, Crop } from '../types/farmer';
 
-// This will be set dynamically based on logged in farmer
-export let mockFarmer: Farmer = sampleFarmers[0];
-
 export const sampleFarmers: Farmer[] = [
   {
     id: '1',
@@ -41,6 +38,9 @@ export const sampleFarmers: Farmer[] = [
     profileComplete: true
   }
 ];
+
+// This will be set dynamically based on logged in farmer
+export let mockFarmer: Farmer = sampleFarmers[0];
 
 // Farmer-specific crop data
 export const farmerCrops: Record<string, Crop[]> = {
