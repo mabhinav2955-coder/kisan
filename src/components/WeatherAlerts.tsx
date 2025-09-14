@@ -9,16 +9,19 @@ import {
   RefreshCw,
   Calendar,
   MapPin,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
 import BackButton from './BackButton';
 import { WeatherAlert } from '../types/farmer';
 
 interface WeatherAlertsProps {
   onBack?: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export default function WeatherAlerts({ onBack }: WeatherAlertsProps) {
+export default function WeatherAlerts({ onBack, isOpen, onClose }: WeatherAlertsProps) {
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +147,7 @@ export default function WeatherAlerts({ onBack }: WeatherAlertsProps) {
     return now >= validFrom && now <= validTo;
   };
 
-  return (
+  const content = (
     <div className="space-y-6">
       {onBack && <BackButton onBack={onBack} />}
       
@@ -293,4 +296,29 @@ export default function WeatherAlerts({ onBack }: WeatherAlertsProps) {
       </div>
     </div>
   );
+
+  // If used as modal
+  if (isOpen && onClose) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Weather Alerts</h2>
+              <button
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {content}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If used as page component
+  return content;
 }

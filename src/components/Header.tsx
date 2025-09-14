@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Bell, User, MessageCircle, Wifi, WifiOff, LogOut } from 'lucide-react';
+import { Menu, Bell, User, MessageCircle, Wifi, WifiOff, LogOut, CloudRain } from 'lucide-react';
 
 interface HeaderProps {
   farmerName: string;
@@ -7,10 +7,11 @@ interface HeaderProps {
   onMenuClick: () => void;
   onChatClick: () => void;
   onNotificationClick: () => void;
+  onWeatherClick: () => void;
   unreadNotifications: number;
 }
 
-export default function Header({ farmerName, onLogout, onMenuClick, onChatClick, onNotificationClick, unreadNotifications }: HeaderProps) {
+export default function Header({ farmerName, onLogout, onMenuClick, onChatClick, onNotificationClick, onWeatherClick, unreadNotifications }: HeaderProps) {
   const [isOnline] = React.useState(true);
 
   return (
@@ -36,6 +37,14 @@ export default function Header({ farmerName, onLogout, onMenuClick, onChatClick,
           </div>
 
           <div className="flex items-center space-x-3">
+            <button
+              onClick={onWeatherClick}
+              className="p-2 rounded-md text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors relative"
+              title="Weather Updates"
+            >
+              <CloudRain className="h-6 w-6" />
+            </button>
+            
             <button
               onClick={onChatClick}
               className="p-2 rounded-md text-gray-600 hover:text-green-600 hover:bg-green-50 transition-colors relative"

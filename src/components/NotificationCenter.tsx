@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
-import { Bell, X, Check, AlertTriangle, Info, CheckCircle, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, X, Check, AlertTriangle, Info, CheckCircle, Clock, CloudRain, Calendar, TrendingUp, FileText } from 'lucide-react';
+import { apiService } from '../services/apiService';
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'warning' | 'success' | 'urgent';
+  type: 'info' | 'warning' | 'success' | 'urgent' | 'weather' | 'reminder' | 'market' | 'scheme';
   timestamp: string;
   read: boolean;
   actionUrl?: string;
+  category: 'weather' | 'reminder' | 'market' | 'scheme' | 'general';
 }
 
 interface NotificationCenterProps {
@@ -57,6 +59,10 @@ const getNotificationIcon = (type: string) => {
     case 'urgent': return <AlertTriangle className="h-5 w-5 text-red-600" />;
     case 'success': return <CheckCircle className="h-5 w-5 text-green-600" />;
     case 'info': return <Info className="h-5 w-5 text-blue-600" />;
+    case 'weather': return <CloudRain className="h-5 w-5 text-blue-600" />;
+    case 'reminder': return <Clock className="h-5 w-5 text-purple-600" />;
+    case 'market': return <TrendingUp className="h-5 w-5 text-green-600" />;
+    case 'scheme': return <FileText className="h-5 w-5 text-blue-600" />;
     default: return <Bell className="h-5 w-5 text-gray-600" />;
   }
 };
@@ -67,12 +73,137 @@ const getNotificationColor = (type: string) => {
     case 'urgent': return 'bg-red-50 border-red-200';
     case 'success': return 'bg-green-50 border-green-200';
     case 'info': return 'bg-blue-50 border-blue-200';
+    case 'weather': return 'bg-blue-50 border-blue-200';
+    case 'reminder': return 'bg-purple-50 border-purple-200';
+    case 'market': return 'bg-green-50 border-green-200';
+    case 'scheme': return 'bg-blue-50 border-blue-200';
     default: return 'bg-gray-50 border-gray-200';
   }
 };
 
 export default function NotificationCenter({ isOpen, onClose }: NotificationCenterProps) {
-  const [notificationList, setNotificationList] = useState(notifications);
+  const [notificationList, setNotificationList] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAllNotifications();
+    }
+  }, [isOpen]);
+
+  const fetchAllNotifications = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch real-time data
+      const [weatherData, marketData, pestAlerts, governmentAdvisories] = await Promise.all([
+        apiService.getWeatherData(),
+        apiService.getMarketPrices(),
+        apiService.getPestAlerts(),
+        apiService.getGovernmentAdvisories()
+      ]);
+
+      const allNotifications: Notification[] = [];
+
+      // Weather notifications
+      if (weatherData?.alerts) {
+        weatherData.alerts.forEach((alert: any) => {
+          allNotifications.push({
+            id: `weather-${alert.type}-${Date.now()}`,
+            title: `${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)} Alert`,
+            message: alert.description,
+            type: alert.severity === 'urgent' ? 'urgent' : 'warning',
+            timestamp: alert.date,
+            read: false,
+            category: 'weather'
+          });
+        });
+      }
+
+      // Market notifications
+      if (marketData) {
+        marketData.forEach((price: any) => {
+          if (price.trend === 'up' && price.changePercent > 5) {
+            allNotifications.push({
+              id: `market-${price.crop}-${Date.now()}`,
+              title: `${price.crop} Price Surge`,
+              message: `${price.crop} prices increased by ${price.changePercent}% to ₹${price.currentPrice}/${price.unit}. Good time to sell!`,
+              type: 'success',
+              timestamp: price.date,
+              read: false,
+              category: 'market'
+            });
+          }
+        });
+      }
+
+      // Pest alerts
+      if (pestAlerts) {
+        pestAlerts.forEach((alert: any) => {
+          if (alert.severity === 'high' || alert.severity === 'urgent') {
+            allNotifications.push({
+              id: `pest-${alert.id}`,
+              title: `${alert.pest} Alert`,
+              message: `${alert.pest} detected in ${alert.crop}. ${alert.description}`,
+              type: alert.severity === 'urgent' ? 'urgent' : 'warning',
+              timestamp: alert.date,
+              read: false,
+              category: 'general'
+            });
+          }
+        });
+      }
+
+      // Government scheme notifications
+      if (governmentAdvisories) {
+        governmentAdvisories.forEach((scheme: any) => {
+          if (scheme.priority === 'high' || scheme.priority === 'urgent') {
+            allNotifications.push({
+              id: `scheme-${scheme.id}`,
+              title: scheme.title,
+              message: scheme.description,
+              type: scheme.priority === 'urgent' ? 'urgent' : 'info',
+              timestamp: scheme.date,
+              read: false,
+              category: 'scheme'
+            });
+          }
+        });
+      }
+
+      // Add some mock reminders
+      allNotifications.push({
+        id: 'reminder-1',
+        title: 'Irrigation Reminder',
+        message: 'Time to irrigate Field A. Water level is low.',
+        type: 'reminder',
+        timestamp: new Date().toISOString(),
+        read: false,
+        category: 'reminder'
+      });
+
+      allNotifications.push({
+        id: 'reminder-2',
+        title: 'Fertilizer Application',
+        message: 'Apply NPK fertilizer to rice fields next week.',
+        type: 'reminder',
+        timestamp: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        read: false,
+        category: 'reminder'
+      });
+
+      // Sort by timestamp (newest first)
+      allNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      setNotificationList(allNotifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      // Fallback to static notifications
+      setNotificationList(notifications);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const markAsRead = (id: string) => {
     setNotificationList(prev => prev.map(notif => 
@@ -121,7 +252,18 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
 
         {/* Notifications List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {notificationList.map((notification) => (
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            </div>
+          ) : notificationList.length === 0 ? (
+            <div className="text-center py-8">
+              <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Notifications</h3>
+              <p className="text-gray-600">You're all caught up!</p>
+            </div>
+          ) : (
+            notificationList.map((notification) => (
             <div
               key={notification.id}
               onClick={() => markAsRead(notification.id)}
@@ -163,7 +305,8 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
 
         {/* Footer */}

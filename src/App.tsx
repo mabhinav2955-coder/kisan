@@ -33,6 +33,7 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isWeatherOpen, setIsWeatherOpen] = useState(false);
   const [isActivityLoggerOpen, setIsActivityLoggerOpen] = useState(false);
   const [isCropDiagnosisOpen, setIsCropDiagnosisOpen] = useState(false);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
@@ -247,6 +248,7 @@ function App() {
         onMenuClick={() => setIsMenuOpen(true)}
         onChatClick={() => setIsChatOpen(true)}
         onNotificationClick={() => setIsNotificationOpen(true)}
+        onWeatherClick={() => setIsWeatherOpen(true)}
         unreadNotifications={currentFarmerData.advisories.filter(a => a.actionRequired).length}
       />
       
@@ -269,6 +271,11 @@ function App() {
       <NotificationCenter
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
+      />
+      
+      <WeatherAlerts
+        isOpen={isWeatherOpen}
+        onClose={() => setIsWeatherOpen(false)}
       />
       
       <CropDiagnosis
