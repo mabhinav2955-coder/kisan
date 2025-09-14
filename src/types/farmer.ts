@@ -6,6 +6,27 @@ export interface Farmer {
   district: string;
   registrationDate: string;
   profileComplete: boolean;
+  farmDetails?: FarmDetails;
+}
+
+export interface FarmDetails {
+  location: {
+    latitude: number;
+    longitude: number;
+    pincode: string;
+    address: string;
+  };
+  landSize: number;
+  soilType: 'clay' | 'sandy' | 'loamy' | 'red' | 'black' | 'alluvial';
+  irrigationMethod: 'rain-fed' | 'bore-well' | 'canal' | 'drip' | 'sprinkler' | 'flood';
+  crops: {
+    name: string;
+    variety: string;
+    area: number;
+    plantingDate: string;
+    expectedHarvestDate: string;
+    status: 'planning' | 'planted' | 'growing' | 'harvested';
+  }[];
 }
 
 export interface Farm {

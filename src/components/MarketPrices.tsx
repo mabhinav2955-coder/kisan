@@ -1,82 +1,52 @@
-import React from 'react';
-import { TrendingUp, TrendingDown, Minus, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Minus, MapPin, RefreshCw, AlertCircle } from 'lucide-react';
+import BackButton from './BackButton';
+import { apiService, MarketPrice } from '../services/apiService';
 
-interface MarketPrice {
-  crop: string;
-  malayalam: string;
-  currentPrice: number;
-  previousPrice: number;
-  market: string;
-  date: string;
-  unit: string;
+// Remove the duplicate interface as it's now imported from apiService
+
+interface MarketPricesProps {
+  onBack?: () => void;
 }
 
-const marketPrices: MarketPrice[] = [
-  {
-    crop: 'Rice',
-    malayalam: 'നെല്ല്',
-    currentPrice: 2850,
-    previousPrice: 2800,
-    market: 'Kottayam Mandi',
-    date: new Date().toISOString().split('T')[0],
-    unit: 'quintal'
-  },
-  {
-    crop: 'Coconut',
-    malayalam: 'തെങ്ങ്',
-    currentPrice: 12,
-    previousPrice: 11.5,
-    market: 'Cochin Market',
-    date: new Date().toISOString().split('T')[0],
-    unit: 'piece'
-  },
-  {
-    crop: 'Pepper',
-    malayalam: 'കുരുമുളക്',
-    currentPrice: 45000,
-    previousPrice: 46500,
-    market: 'Idukki Spice Market',
-    date: new Date().toISOString().split('T')[0],
-    unit: 'quintal'
-  },
-  {
-    crop: 'Cardamom',
-    malayalam: 'ഏലം',
-    currentPrice: 275000,
-    previousPrice: 270000,
-    market: 'Kumily Market',
-    date: new Date().toISOString().split('T')[0],
-    unit: 'quintal'
-  },
-  {
-    crop: 'Rubber',
-    malayalam: 'റബ്ബർ',
-    currentPrice: 18500,
-    previousPrice: 18200,
-    market: 'Rubber Board',
-    date: new Date().toISOString().split('T')[0],
-    unit: 'quintal'
-  },
-  {
-    crop: 'Banana',
-    malayalam: 'വാഴ',
-    currentPrice: 2200,
-    previousPrice: 2200,
-    market: 'Ernakulam Market',
-    date: new Date().toISOString().split('T')[0],
-    unit: 'quintal'
-  }
-];
+// Remove static data as we'll fetch from API
 
-export default function MarketPrices() {
-  const getPriceChange = (current: number, previous: number) => {
-    const change = current - previous;
-    const percentage = ((change / previous) * 100).toFixed(1);
+export default function MarketPrices({ onBack }: MarketPricesProps) {
+  const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  useEffect(() => {
+    fetchMarketPrices();
+    // Set up auto-refresh every 5 minutes
+    const interval = setInterval(fetchMarketPrices, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchMarketPrices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const prices = await apiService.getMarketPrices();
+      setMarketPrices(prices);
+      setLastUpdated(new Date());
+    } catch (err) {
+      setError('Failed to fetch market prices. Please try again.');
+      console.error('Error fetching market prices:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getPriceChange = (price: MarketPrice) => {
+    const change = price.currentPrice - price.previousPrice;
+    const percentage = price.changePercent;
     
-    if (change > 0) {
-      return { icon: TrendingUp, color: 'text-green-600', sign: '+', percentage };
-    } else if (change < 0) {
-      return { icon: TrendingDown, color: 'text-red-600', sign: '', percentage };
+    if (price.trend === 'up') {
+      return { icon: TrendingUp, color: 'text-green-600', sign: '+', percentage: percentage.toFixed(1) };
+    } else if (price.trend === 'down') {
+      return { icon: TrendingDown, color: 'text-red-600', sign: '', percentage: percentage.toFixed(1) };
     } else {
       return { icon: Minus, color: 'text-gray-600', sign: '', percentage: '0.0' };
     }
@@ -84,25 +54,58 @@ export default function MarketPrices() {
 
   return (
     <div className="space-y-6">
+      {onBack && <BackButton onBack={onBack} />}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center shadow-sm">
             <TrendingUp className="h-6 w-6 text-green-600" />
           </div>
           <div>
-          <h2 className="text-2xl font-bold text-gray-900">Market Prices</h2>
-          <p className="text-gray-600">Live prices from Kerala markets</p>
+            <h2 className="text-2xl font-bold text-gray-900">Market Prices</h2>
+            <p className="text-gray-600">Live prices from Kerala markets</p>
           </div>
         </div>
-        <div className="text-sm text-gray-500">
-          Last updated: {new Date().toLocaleTimeString()}
+        <div className="flex items-center space-x-3">
+          <div className="text-sm text-gray-500">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </div>
+          <button
+            onClick={fetchMarketPrices}
+            disabled={loading}
+            className={`p-2 rounded-lg transition-colors ${
+              loading 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'bg-green-100 text-green-600 hover:bg-green-200'
+            }`}
+            title="Refresh prices"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {marketPrices.map((item, index) => {
-          const priceChange = getPriceChange(item.currentPrice, item.previousPrice);
-          const ChangeIcon = priceChange.icon;
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+          <AlertCircle className="h-5 w-5 text-red-600" />
+          <div>
+            <p className="text-red-800 font-medium">Error loading market prices</p>
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {loading && marketPrices.length === 0 ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center space-x-3">
+            <RefreshCw className="h-6 w-6 animate-spin text-green-600" />
+            <span className="text-gray-600">Loading market prices...</span>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {marketPrices.map((item, index) => {
+            const priceChange = getPriceChange(item);
+            const ChangeIcon = priceChange.icon;
           
           return (
             <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -139,7 +142,8 @@ export default function MarketPrices() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-start space-x-3">

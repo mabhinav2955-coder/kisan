@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, Languages, X, Bot, Sparkles } from 'lucide-react';
+import { Send, Mic, MicOff, Languages, X, Bot, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { ChatMessage } from '../types/farmer';
+import { voiceService } from '../services/voiceService';
 
 interface ChatInterfaceProps {
   isOpen: boolean;
@@ -20,7 +21,9 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
   ]);
   const [newMessage, setNewMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [language, setLanguage] = useState<'english' | 'malayalam'>('english');
+  const [voiceSupported, setVoiceSupported] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -30,6 +33,14 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    // Check if voice features are supported
+    setVoiceSupported(
+      voiceService.isSpeechRecognitionSupported() && 
+      voiceService.isSpeechSynthesisSupported()
+    );
+  }, []);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -73,17 +84,62 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
       };
       
       setMessages(prev => [...prev, aiResponse]);
+      
+      // Speak the AI response
+      if (voiceSupported) {
+        voiceService.speak(
+          aiResponse.message,
+          language === 'malayalam' ? 'ml-IN' : 'en-US',
+          () => setIsSpeaking(false)
+        );
+        setIsSpeaking(true);
+      }
     }, 1000);
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    // In a real app, this would start/stop voice recording
-    if (!isRecording) {
-      setTimeout(() => {
-        setIsRecording(false);
-        setNewMessage(language === 'malayalam' ? 'എന്റെ നെല്ലിന് എന്ത് വളം ഇടണം?' : 'What fertilizer should I use for my rice crop?');
-      }, 2000);
+  const toggleRecording = async () => {
+    if (isRecording) {
+      voiceService.stopListening();
+      setIsRecording(false);
+    } else {
+      try {
+        await voiceService.startListening(
+          (transcript, isFinal) => {
+            if (isFinal) {
+              setNewMessage(transcript);
+              setIsRecording(false);
+            }
+          },
+          (error) => {
+            console.error('Speech recognition error:', error);
+            setIsRecording(false);
+            alert('Speech recognition failed. Please try again.');
+          },
+          language === 'malayalam' ? 'ml-IN' : 'en-US'
+        );
+        setIsRecording(true);
+      } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        alert('Speech recognition not available. Please type your message.');
+      }
+    }
+  };
+
+  const toggleSpeaking = () => {
+    if (isSpeaking) {
+      voiceService.stopSpeaking();
+      setIsSpeaking(false);
+    } else {
+      // Speak the last AI message
+      const lastMessage = messages.filter(m => m.sender === 'assistant').pop();
+      if (lastMessage) {
+        voiceService.speak(
+          lastMessage.message,
+          language === 'malayalam' ? 'ml-IN' : 'en-US',
+          () => setIsSpeaking(false)
+        );
+        setIsSpeaking(true);
+      }
     }
   };
 
@@ -97,7 +153,7 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
           <div className="flex items-center space-x-3">
             <div className="h-8 w-8 bg-gradient-to-r from-green-600 to-green-500 rounded-full flex items-center justify-center relative overflow-hidden">
               <Bot className="h-5 w-5 text-white" />
-              <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-400 rounded-full animate-pulse"></div>
+              <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-400 rounded-full"></div>
             </div>
             <div>
               <div className="flex items-center space-x-2">
@@ -109,6 +165,19 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
           </div>
           
           <div className="flex items-center space-x-2">
+            {voiceSupported && (
+              <button
+                onClick={toggleSpeaking}
+                className={`p-2 rounded-md transition-colors ${
+                  isSpeaking 
+                    ? 'text-red-600 hover:text-red-700 hover:bg-red-50' 
+                    : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
+                }`}
+                title={isSpeaking ? 'Stop Speaking' : 'Speak Response'}
+              >
+                {isSpeaking ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+              </button>
+            )}
             <button
               onClick={() => setLanguage(language === 'english' ? 'malayalam' : 'english')}
               className="p-2 rounded-md text-gray-600 hover:text-green-600 hover:bg-green-50 transition-colors"
@@ -165,11 +234,15 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
             
             <button
               onClick={toggleRecording}
+              disabled={!voiceSupported}
               className={`p-2 rounded-lg transition-colors ${
-                isRecording 
-                  ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                !voiceSupported
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : isRecording 
+                    ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
+              title={voiceSupported ? (isRecording ? 'Stop Recording' : 'Start Recording') : 'Voice not supported'}
             >
               {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </button>

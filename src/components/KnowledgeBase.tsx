@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Book, Search, Calendar, Bug, Leaf, Droplets, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Book, Search, Calendar, Bug, Leaf, Droplets, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
+import BackButton from './BackButton';
+import { apiService, PestAlert, GovernmentAdvisory } from '../services/apiService';
 
 interface KnowledgeItem {
   id: string;
@@ -53,10 +55,37 @@ const categories = [
   { id: 'irrigation', label: 'Water Management', icon: Droplets }
 ];
 
-export default function KnowledgeBase() {
+interface KnowledgeBaseProps {
+  onBack?: () => void;
+}
+
+export default function KnowledgeBase({ onBack }: KnowledgeBaseProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<KnowledgeItem | null>(null);
+  const [pestAlerts, setPestAlerts] = useState<PestAlert[]>([]);
+  const [governmentAdvisories, setGovernmentAdvisories] = useState<GovernmentAdvisory[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchRealTimeData();
+  }, []);
+
+  const fetchRealTimeData = async () => {
+    setLoading(true);
+    try {
+      const [pestData, advisoryData] = await Promise.all([
+        apiService.getPestAlerts(),
+        apiService.getGovernmentAdvisories()
+      ]);
+      setPestAlerts(pestData);
+      setGovernmentAdvisories(advisoryData);
+    } catch (error) {
+      console.error('Error fetching real-time data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredItems = knowledgeItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
@@ -65,6 +94,16 @@ export default function KnowledgeBase() {
                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
 
   if (selectedItem) {
     return (
@@ -98,6 +137,7 @@ export default function KnowledgeBase() {
 
   return (
     <div className="space-y-6">
+      {onBack && <BackButton onBack={onBack} />}
       <div className="flex items-center space-x-4">
         <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center shadow-sm">
           <Book className="h-6 w-6 text-blue-600" />
@@ -107,6 +147,84 @@ export default function KnowledgeBase() {
           <p className="text-gray-600">Access expert farming knowledge and best practices</p>
         </div>
       </div>
+
+      {/* Real-time Alerts */}
+      {pestAlerts.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <h3 className="font-semibold text-red-900">Live Pest Alerts</h3>
+            </div>
+            <button
+              onClick={fetchRealTimeData}
+              disabled={loading}
+              className="p-1 text-red-600 hover:text-red-700 transition-colors"
+              title="Refresh alerts"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {pestAlerts.slice(0, 2).map((alert) => (
+              <div key={alert.id} className="bg-white rounded-lg p-3 border border-red-200">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h4 className="font-medium text-gray-900">{alert.pest}</h4>
+                    <p className="text-sm text-gray-600">{alert.malayalam}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getSeverityColor(alert.severity)}`}>
+                    {alert.severity}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 mb-2">{alert.description}</p>
+                <p className="text-xs text-gray-600">
+                  <strong>Action:</strong> {alert.recommendedAction}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Government Advisories */}
+      {governmentAdvisories.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <Book className="h-5 w-5 text-blue-600" />
+              <h3 className="font-semibold text-blue-900">Government Advisories</h3>
+            </div>
+            <button
+              onClick={fetchRealTimeData}
+              disabled={loading}
+              className="p-1 text-blue-600 hover:text-blue-700 transition-colors"
+              title="Refresh advisories"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {governmentAdvisories.slice(0, 2).map((advisory) => (
+              <div key={advisory.id} className="bg-white rounded-lg p-3 border border-blue-200">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h4 className="font-medium text-gray-900">{advisory.title}</h4>
+                    <p className="text-sm text-gray-600">{advisory.malayalam}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getSeverityColor(advisory.priority)}`}>
+                    {advisory.priority}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 mb-2">{advisory.description}</p>
+                <p className="text-xs text-gray-600">
+                  <strong>Source:</strong> {advisory.source}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">

@@ -16,8 +16,11 @@ import CropDiagnosis from './components/CropDiagnosis';
 import CommunityForum from './components/CommunityForum';
 import AuthPage from './components/AuthPage';
 import EmptyState from './components/EmptyState';
+import ErrorBoundary from './components/ErrorBoundary';
 import { sampleFarmers, getFarmerData, setCurrentFarmer } from './data/mockData';
 import { Activity, Advisory, Farmer } from './types/farmer';
+import { validationService } from './services/validationService';
+import { errorService } from './services/errorService';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -88,12 +91,30 @@ function App() {
   };
 
   const handleSaveActivity = (newActivity: Omit<Activity, 'id' | 'farmerId'>) => {
-    const activity: Activity = {
-      ...newActivity,
-      id: Date.now().toString(),
-      farmerId: farmer.id
-    };
-    setActivities(prev => [activity, ...prev]);
+    try {
+      // Validate activity data
+      const validation = validationService.validateActivity(newActivity);
+      if (!validation.isValid) {
+        const error = errorService.createError(
+          'VALIDATION_ERROR',
+          validation.errors.join(', '),
+          validation.errors
+        );
+        alert(errorService.getUserFriendlyMessage(error));
+        return;
+      }
+
+      const activity: Activity = {
+        ...newActivity,
+        id: Date.now().toString(),
+        farmerId: farmer.id
+      };
+      setActivities(prev => [activity, ...prev]);
+    } catch (error) {
+      console.error('Error saving activity:', error);
+      const appError = errorService.handleApiError(error, 'handleSaveActivity');
+      alert(errorService.getUserFriendlyMessage(appError));
+    }
   };
 
   const handleAdvisoryAction = (advisory: Advisory) => {
@@ -115,17 +136,17 @@ function App() {
           />
         );
       case 'market':
-        return <MarketPrices />;
+        return <MarketPrices onBack={() => setActiveTab('dashboard')} />;
       case 'profile':
-        return <FarmerProfile farmer={farmer} onUpdate={setFarmer} />;
+        return <FarmerProfile farmer={farmer} onUpdate={setFarmer} onBack={() => setActiveTab('dashboard')} />;
       case 'farm':
-        return <CropCalendar />;
+        return <CropCalendar onBack={() => setActiveTab('dashboard')} />;
       case 'progress':
         return <ProgressTracker activities={activities} crops={currentFarmerData.farm.crops} />;
       case 'schemes':
         return <SchemeAlerts />;
       case 'knowledge':
-        return <KnowledgeBase />;
+        return <KnowledgeBase onBack={() => setActiveTab('dashboard')} />;
       case 'activities':
         return (
           <div className="space-y-6">
@@ -195,11 +216,16 @@ function App() {
   };
 
   if (!isAuthenticated) {
-    return <AuthPage onLogin={handleLogin} sampleFarmers={sampleFarmers} />;
+    return (
+      <ErrorBoundary>
+        <AuthPage onLogin={handleLogin} sampleFarmers={sampleFarmers} />
+      </ErrorBoundary>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
       <Header
         farmerName={farmer.name}
         onLogout={handleLogout}
@@ -216,7 +242,7 @@ function App() {
         onTabChange={setActiveTab}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
         {renderContent()}
       </main>
 
@@ -247,22 +273,23 @@ function App() {
         crops={currentFarmerData.farm.crops}
       />
 
-      {/* Floating Chat Button */}
+      {/* Floating Chat Button - Fixed bottom-right */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-green-500 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110 z-30 animate-pulse"
+        className="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-green-500 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110 z-30"
       >
         <MessageSquare className="h-6 w-6" />
       </button>
 
-      {/* Floating Activity Logger Button */}
+      {/* Floating Calendar Button - Fixed top-right */}
       <button
-        onClick={() => setIsActivityLoggerOpen(true)}
-        className="fixed bottom-6 right-20 bg-gradient-to-r from-blue-600 to-blue-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110 z-30"
+        onClick={() => setActiveTab('farm')}
+        className="fixed top-20 right-6 bg-gradient-to-r from-blue-600 to-blue-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-110 z-30"
       >
         <Calendar className="h-5 w-5" />
       </button>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
 
