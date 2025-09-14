@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Phone, MapPin, Calendar, Edit3, Save, X, Farm } from 'lucide-react';
+import { User, Phone, MapPin, Calendar, Edit3, Save, X, Crop } from 'lucide-react';
 import { Farmer } from '../types/farmer';
 import BackButton from './BackButton';
 import FarmDetailsForm from './FarmDetailsForm';
@@ -200,7 +200,7 @@ export default function FarmerProfile({ farmer, onUpdate, onBack }: FarmerProfil
               onClick={() => setIsEditingFarm(true)}
               className="flex items-center space-x-2 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
             >
-              <Farm className="h-4 w-4" />
+                    <Crop className="h-4 w-4" />
               <span>{farmer.farmDetails ? 'Edit' : 'Add'} Farm Details</span>
             </button>
           </div>
@@ -241,7 +241,7 @@ export default function FarmerProfile({ farmer, onUpdate, onBack }: FarmerProfil
             </div>
           ) : (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-              <Farm className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
+                <Crop className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
               <p className="text-yellow-800 font-medium">No farm details added yet</p>
               <p className="text-yellow-700 text-sm">Add your farm details to get personalized recommendations</p>
             </div>
