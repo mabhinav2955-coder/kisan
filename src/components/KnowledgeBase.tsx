@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Book, Search, Calendar, Bug, Leaf, Droplets, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 import BackButton from './BackButton';
-import { apiService, PestAlert, GovernmentAdvisory } from '../services/apiService';
+import { PestAlert, GovernmentAdvisory } from '../types/farmer';
+import { apiService } from '../services/apiService';
 
 interface KnowledgeItem {
   id: string;

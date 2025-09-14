@@ -91,3 +91,86 @@ export interface AuthUser {
   phone: string;
   isAuthenticated: boolean;
 }
+
+export interface MarketPrice {
+  crop: string;
+  malayalam: string;
+  currentPrice: number;
+  previousPrice: number;
+  market: string;
+  date: string;
+  unit: string;
+  trend: 'up' | 'down' | 'stable';
+  changePercent: number;
+  timestamp?: string;
+}
+
+export interface WeatherData {
+  current: {
+    temperature: number;
+    humidity: number;
+    windSpeed: number;
+    description: string;
+    icon: string;
+  };
+  forecast: Array<{
+    date: string;
+    temperature: {
+      min: number;
+      max: number;
+    };
+    humidity: number;
+    rain: number;
+    description: string;
+    icon: string;
+  }>;
+  alerts: Array<{
+    type: 'weather' | 'pest' | 'disease';
+    severity: 'low' | 'medium' | 'high' | 'urgent';
+    title: string;
+    description: string;
+    date: string;
+  }>;
+  timestamp?: string;
+}
+
+export interface PestAlert {
+  id: string;
+  crop: string;
+  pest: string;
+  severity: 'low' | 'medium' | 'high' | 'urgent';
+  description: string;
+  recommendation: string;
+  date: string;
+  location: string;
+}
+
+export interface GovernmentAdvisory {
+  id: string;
+  title: string;
+  description: string;
+  type: 'scheme' | 'subsidy' | 'training' | 'alert';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  date: string;
+  link?: string;
+}
+
+export interface SoilHealthData {
+  ph: number;
+  nitrogen: number;
+  phosphorus: number;
+  potassium: number;
+  organicMatter: number;
+  recommendations: string[];
+  lastTested: string;
+}
+
+export interface CropCalendarEvent {
+  id: string;
+  crop: string;
+  activity: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+}

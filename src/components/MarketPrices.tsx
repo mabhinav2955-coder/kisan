@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, MapPin, RefreshCw, AlertCircle } from 'lucide-react';
 import BackButton from './BackButton';
-import { apiService, MarketPrice } from '../services/apiService';
+import { MarketPrice } from '../types/farmer';
+import { apiService } from '../services/apiService';
 
 // Remove the duplicate interface as it's now imported from apiService
 
