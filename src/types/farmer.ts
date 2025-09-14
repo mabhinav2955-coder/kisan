@@ -174,3 +174,201 @@ export interface CropCalendarEvent {
   description: string;
   priority: 'low' | 'medium' | 'high';
 }
+
+// New interfaces for enhanced features
+export interface DiseaseReport {
+  id: string;
+  farmerId: string;
+  cropName: string;
+  cropVariety?: string;
+  images: ImageFile[];
+  location?: {
+    latitude: number;
+    longitude: number;
+    address: string;
+    pincode: string;
+  };
+  symptoms?: string;
+  severity: 'mild' | 'moderate' | 'severe';
+  aiAnalysis: {
+    diseaseDetected?: string;
+    confidence?: number;
+    alternativeDiagnoses?: Array<{
+      disease: string;
+      confidence: number;
+    }>;
+    analysisStatus: 'pending' | 'processing' | 'completed' | 'failed';
+    errorMessage?: string;
+  };
+  recommendations?: {
+    organic: Array<{
+      treatment: string;
+      dosage: string;
+      frequency: string;
+      duration: string;
+    }>;
+    chemical: Array<{
+      treatment: string;
+      dosage: string;
+      frequency: string;
+      duration: string;
+      safetyNotes: string;
+    }>;
+    preventive: Array<{
+      measure: string;
+      description: string;
+    }>;
+  };
+  followUp?: {
+    scheduledDate: string;
+    status: 'scheduled' | 'completed' | 'cancelled';
+    notes?: string;
+  };
+  status: 'active' | 'resolved' | 'escalated';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ImageFile {
+  filename: string;
+  originalName: string;
+  mimetype: string;
+  size: number;
+  url: string;
+  compressed?: boolean;
+}
+
+export interface CommunityPost {
+  id: string;
+  author: {
+    id: string;
+    name: string;
+    village: string;
+    district: string;
+  };
+  title: string;
+  content: string;
+  images: ImageFile[];
+  category: 'general' | 'crop-care' | 'pest-control' | 'weather' | 'market' | 'equipment' | 'schemes';
+  tags: string[];
+  likes: Array<{
+    user: string;
+    createdAt: string;
+  }>;
+  dislikes: Array<{
+    user: string;
+    createdAt: string;
+  }>;
+  replies: Array<{
+    id: string;
+    author: {
+      id: string;
+      name: string;
+      village: string;
+      district: string;
+    };
+    content: string;
+    images: ImageFile[];
+    likes: Array<{
+      user: string;
+      createdAt: string;
+    }>;
+    dislikes: Array<{
+      user: string;
+      createdAt: string;
+    }>;
+    isDeleted: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  isDeleted: boolean;
+  isPinned: boolean;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+  userLiked?: boolean;
+  userDisliked?: boolean;
+}
+
+export interface ActivityTask {
+  id: string;
+  farmerId: string;
+  cropId?: string;
+  type: 'sowing' | 'irrigation' | 'fertilizer' | 'pesticide' | 'weeding' | 'harvest' | 'pruning' | 'spraying';
+  title: string;
+  description: string;
+  date: string;
+  scheduledDate?: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'overdue';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  notes?: string;
+  cost?: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  attachments: ImageFile[];
+  reminders: Array<{
+    type: 'email' | 'sms' | 'push';
+    scheduledFor: string;
+    sent: boolean;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatSession {
+  id: string;
+  farmerId: string;
+  sessionId: string;
+  messages: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    language: 'english' | 'malayalam';
+    type: 'text' | 'voice';
+    timestamp: string;
+    metadata?: {
+      weatherData?: any;
+      marketData?: any;
+      pestAlerts?: any;
+      governmentAdvisories?: any;
+    };
+  }>;
+  isArchived: boolean;
+  lastAccessed: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WeatherAlert {
+  id: string;
+  type: 'rainfall' | 'heatwave' | 'wind' | 'storm' | 'drought';
+  severity: 'low' | 'medium' | 'high' | 'urgent';
+  title: string;
+  description: string;
+  affectedAreas: string[];
+  validFrom: string;
+  validTo: string;
+  recommendations: string[];
+  createdAt: string;
+}
+
+export interface GovernmentScheme {
+  id: string;
+  title: string;
+  description: string;
+  type: 'subsidy' | 'insurance' | 'loan' | 'training' | 'equipment';
+  category: 'crop' | 'livestock' | 'equipment' | 'infrastructure' | 'general';
+  eligibility: string[];
+  benefits: string[];
+  applicationDeadline?: string;
+  contactInfo: {
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+  documentsRequired: string[];
+  status: 'active' | 'upcoming' | 'expired';
+  createdAt: string;
+}

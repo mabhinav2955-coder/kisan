@@ -10,7 +10,12 @@ import {
   BookOpen,
   Award,
   BarChart3,
-  X
+  X,
+  Calendar,
+  CloudRain,
+  Users,
+  Stethoscope,
+  CheckSquare
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -23,14 +28,16 @@ interface NavigationProps {
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'profile', label: 'My Profile', icon: User },
-  { id: 'farm', label: 'Farm Details', icon: Sprout },
-  { id: 'activities', label: 'Activities', icon: Activity },
-  { id: 'chat', label: 'Ask Krishi Sakhi', icon: MessageSquare },
-  { id: 'advisories', label: 'Advisories', icon: Bell },
-  { id: 'schemes', label: 'Govt Schemes', icon: Award },
-  { id: 'progress', label: 'Progress', icon: BarChart3 },
+  { id: 'farm', label: 'Crop Calendar', icon: Calendar },
+  { id: 'activity-tracking', label: 'Activity Tracking', icon: CheckSquare },
+  { id: 'chat', label: 'AI Assistant', icon: MessageSquare },
+  { id: 'crop-doctor', label: 'Crop Doctor', icon: Stethoscope },
+  { id: 'community', label: 'Community Forum', icon: Users },
+  { id: 'weather-alerts', label: 'Weather Alerts', icon: CloudRain },
+  { id: 'government-schemes', label: 'Govt Schemes', icon: Award },
   { id: 'market', label: 'Market Prices', icon: TrendingUp },
-  { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen }
+  { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
+  { id: 'progress', label: 'Progress', icon: BarChart3 }
 ];
 
 export default function Navigation({ isOpen, onClose, activeTab, onTabChange }: NavigationProps) {

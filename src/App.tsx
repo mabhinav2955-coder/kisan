@@ -4,15 +4,20 @@ import Header from './components/Header';
 import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import ChatInterface from './components/ChatInterface';
+import EnhancedChatbot from './components/EnhancedChatbot';
 import ActivityLogger from './components/ActivityLogger';
 import MarketPrices from './components/MarketPrices';
 import KnowledgeBase from './components/KnowledgeBase';
 import FarmerProfile from './components/FarmerProfile';
 import CropCalendar from './components/CropCalendar';
+import ActivityTracking from './components/ActivityTracking';
 import ProgressTracker from './components/ProgressTracker';
 import SchemeAlerts from './components/SchemeAlerts';
+import WeatherAlerts from './components/WeatherAlerts';
+import GovernmentSchemes from './components/GovernmentSchemes';
 import NotificationCenter from './components/NotificationCenter';
 import CropDiagnosis from './components/CropDiagnosis';
+import CropDoctor from './components/CropDoctor';
 import CommunityForum from './components/CommunityForum';
 import AuthPage from './components/AuthPage';
 import EmptyState from './components/EmptyState';
@@ -135,6 +140,10 @@ function App() {
             onEditFarm={() => alert('Farm edit feature would be implemented here')}
           />
         );
+      case 'chat':
+        return <EnhancedChatbot onBack={() => setActiveTab('dashboard')} />;
+      case 'activity-tracking':
+        return <ActivityTracking onBack={() => setActiveTab('dashboard')} />;
       case 'market':
         return <MarketPrices onBack={() => setActiveTab('dashboard')} />;
       case 'profile':
@@ -143,10 +152,16 @@ function App() {
         return <CropCalendar onBack={() => setActiveTab('dashboard')} />;
       case 'progress':
         return <ProgressTracker activities={activities} crops={currentFarmerData.farm.crops} />;
-      case 'schemes':
-        return <SchemeAlerts />;
+      case 'weather-alerts':
+        return <WeatherAlerts onBack={() => setActiveTab('dashboard')} />;
+      case 'government-schemes':
+        return <GovernmentSchemes onBack={() => setActiveTab('dashboard')} />;
       case 'knowledge':
         return <KnowledgeBase onBack={() => setActiveTab('dashboard')} />;
+      case 'crop-doctor':
+        return <CropDoctor onBack={() => setActiveTab('dashboard')} />;
+      case 'community':
+        return <CommunityForum onBack={() => setActiveTab('dashboard')} />;
       case 'activities':
         return (
           <div className="space-y-6">
