@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, MicOff, Languages, X, Bot, Sparkles, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { ChatMessage } from '../types/farmer';
 import { voiceService } from '../services/voiceService';
-import { apiService } from '../services/apiService';
 
 interface ChatInterfaceProps {
   isOpen: boolean;
@@ -60,32 +59,48 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
     setNewMessage('');
 
     try {
-      // Get real-time data for context
-      const [weatherData, marketData, pestAlerts, governmentAdvisories] = await Promise.all([
-        apiService.getWeatherData(),
-        apiService.getMarketPrices(),
-        apiService.getPestAlerts(),
-        apiService.getGovernmentAdvisories()
-      ]);
+      // Get geolocation (optional)
+      let location: { lat: number; lon: number } | null = null;
+      try {
+        location = await new Promise((resolve) => {
+          if (!navigator.geolocation) return resolve(null);
+          navigator.geolocation.getCurrentPosition(
+            pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+            () => resolve(null),
+            { maximumAge: 600000, timeout: 3000 }
+          );
+        });
+      } catch {}
 
-      // Generate enhanced AI response with real-time data
+      const response = await fetch('/api/chat/message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        body: JSON.stringify({
+          sessionId: 'floating',
+          message: currentMessage,
+          language,
+          type: 'text',
+          location
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to get response');
+      const result = await response.json();
+
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        message: generateEnhancedAIResponse(currentMessage, language, {
-          weatherData,
-          marketData,
-          pestAlerts,
-          governmentAdvisories
-        }),
+        message: result.response?.content || '',
         sender: 'assistant',
         timestamp: new Date().toISOString(),
         language,
         type: 'text'
       };
-      
+
       setMessages(prev => [...prev, aiResponse]);
 
-      // Auto-speak response if voice is enabled
       if (isSpeaking && voiceService.isSpeechSynthesisSupported()) {
         voiceService.speak(aiResponse.message, language === 'malayalam' ? 'ml-IN' : 'en-US');
       }
@@ -284,95 +299,4 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
   );
 }
 
-// Enhanced AI Response Generator with Real-time Data
-const generateEnhancedAIResponse = (message: string, language: 'english' | 'malayalam', context: any) => {
-  const lowerMessage = message.toLowerCase();
-  const { weatherData, marketData, pestAlerts, governmentAdvisories } = context;
-
-  // Weather-related queries
-  if (lowerMessage.includes('weather') || lowerMessage.includes('rain') || lowerMessage.includes('കാലാവസ്ഥ') || lowerMessage.includes('മഴ')) {
-    const currentTemp = weatherData?.current?.temperature || 28;
-    const humidity = weatherData?.current?.humidity || 65;
-    const description = weatherData?.current?.description || 'sunny';
-    
-    if (language === 'malayalam') {
-      return `നിലവിലെ കാലാവസ്ഥ: താപനില ${currentTemp}°C, ആർദ്രത ${humidity}%, ${description}. വരാനിരിക്കുന്ന മഴ കൃഷിക്ക് അനുകൂലമാണ്. ജലനിർമ്മാണം ശരിയായി നടത്തുക.`;
-    } else {
-      return `Current weather: Temperature ${currentTemp}°C, Humidity ${humidity}%, ${description}. The upcoming rain is favorable for farming. Ensure proper water management.`;
-    }
-  }
-
-  // Market price queries
-  if (lowerMessage.includes('price') || lowerMessage.includes('market') || lowerMessage.includes('വില') || lowerMessage.includes('വിപണി')) {
-    const ricePrice = marketData?.find((p: any) => p.crop.toLowerCase().includes('rice'))?.currentPrice || 45;
-    const coconutPrice = marketData?.find((p: any) => p.crop.toLowerCase().includes('coconut'))?.currentPrice || 12;
-    
-    if (language === 'malayalam') {
-      return `നിലവിലെ വിപണി വിലകൾ: നെല്ല് ₹${ricePrice}/kg, തെങ്ങ് ₹${coconutPrice}/piece. വിലകൾ സ്ഥിരമാണ്. നിങ്ങളുടെ വിളവ് വിപണിയിൽ വിൽക്കാൻ ശുപാർശ ചെയ്യുന്നു.`;
-    } else {
-      return `Current market prices: Rice ₹${ricePrice}/kg, Coconut ₹${coconutPrice}/piece. Prices are stable. I recommend selling your harvest in the market.`;
-    }
-  }
-
-  // Pest and disease queries
-  if (lowerMessage.includes('pest') || lowerMessage.includes('disease') || lowerMessage.includes('കീടം') || lowerMessage.includes('രോഗം')) {
-    const activeAlerts = pestAlerts?.filter((alert: any) => alert.severity === 'high' || alert.severity === 'urgent') || [];
-    
-    if (language === 'malayalam') {
-      if (activeAlerts.length > 0) {
-        return `ഉയർന്ന അലേർട്ട്: ${activeAlerts[0].pest} കീടം നിങ്ങളുടെ പ്രദേശത്ത് സജീവമാണ്. ജൈവ കീടനാശിനി ഉപയോഗിക്കുക. നിയമിതമായി പരിശോധിക്കുക.`;
-      } else {
-        return `നിലവിൽ ഉയർന്ന അലേർട്ടുകളൊന്നുമില്ല. എന്നാൽ നിയമിതമായി നിങ്ങളുടെ വിളകൾ പരിശോധിക്കുക. ആദ്യ ലക്ഷണങ്ങൾ കാണുമ്പോൾ ഉടൻ നടപടി എടുക്കുക.`;
-      }
-    } else {
-      if (activeAlerts.length > 0) {
-        return `High Alert: ${activeAlerts[0].pest} pest is active in your area. Use organic pesticides. Check regularly.`;
-      } else {
-        return `No high alerts currently. However, regularly check your crops. Take immediate action when you see first symptoms.`;
-      }
-    }
-  }
-
-  // Government scheme queries
-  if (lowerMessage.includes('scheme') || lowerMessage.includes('subsidy') || lowerMessage.includes('സ്കീം') || lowerMessage.includes('സബ്സിഡി')) {
-    const activeSchemes = governmentAdvisories?.filter((scheme: any) => scheme.status === 'active') || [];
-    
-    if (language === 'malayalam') {
-      if (activeSchemes.length > 0) {
-        return `സജീവ സർക്കാർ സ്കീമുകൾ: ${activeSchemes[0].title}. ${activeSchemes[0].description}. അപേക്ഷിക്കാൻ ആവശ്യമായ രേഖകൾ തയ്യാറാക്കുക.`;
-      } else {
-        return `നിലവിൽ സജീവമായ പ്രധാന സ്കീമുകൾ ഇല്ല. എന്നാൽ PM-KISAN സ്കീം എല്ലായ്പ്പോഴും ലഭ്യമാണ്. നിങ്ങളുടെ ബാങ്ക് അക്കൗണ്ട് വിശദാംശങ്ങൾ അപ്ഡേറ്റ് ചെയ്യുക.`;
-      }
-    } else {
-      if (activeSchemes.length > 0) {
-        return `Active Government Schemes: ${activeSchemes[0].title}. ${activeSchemes[0].description}. Prepare required documents for application.`;
-      } else {
-        return `No major active schemes currently. However, PM-KISAN scheme is always available. Update your bank account details.`;
-      }
-    }
-  }
-
-  // Crop-specific advice
-  if (lowerMessage.includes('rice') || lowerMessage.includes('നെല്ല്')) {
-    if (language === 'malayalam') {
-      return `നെല്ല് കൃഷിക്ക്: ശരിയായ ജലനിർമ്മാണം, സമയത്ത് വളപ്രയോഗം, കീടനിയന്ത്രണം എന്നിവ ഉറപ്പാക്കുക. ബ്രൗൺ പ്ലാന്റ് ഹോപ്പർ, ബ്ലാസ്റ്റ് രോഗം എന്നിവയിൽ നിന്ന് സൂക്ഷിക്കുക.`;
-    } else {
-      return `For rice cultivation: Ensure proper water management, timely fertilization, and pest control. Watch out for brown plant hopper and blast disease.`;
-    }
-  }
-
-  if (lowerMessage.includes('coconut') || lowerMessage.includes('തെങ്ങ്')) {
-    if (language === 'malayalam') {
-      return `തെങ്ങ് കൃഷിക്ക്: നിയമിതമായ വളപ്രയോഗം, ഡ്രെയിനേജ് വൃത്തിയാക്കൽ, റിംഗ് ബാക്റ്റീരിയ രോഗത്തിൽ നിന്ന് സൂക്ഷിക്കൽ എന്നിവ ആവശ്യമാണ്.`;
-    } else {
-      return `For coconut cultivation: Regular fertilization, drainage cleaning, and protection from ring bacteria disease are essential.`;
-    }
-  }
-
-  // General farming advice
-  if (language === 'malayalam') {
-    return `നിങ്ങളുടെ കൃഷി പ്രവർത്തനങ്ങൾക്ക് ഞാൻ സഹായിക്കാൻ തയ്യാറാണ്. കാലാവസ്ഥ, വിപണി വിലകൾ, കീടങ്ങൾ, സർക്കാർ സ്കീമുകൾ എന്നിവയെക്കുറിച്ച് ചോദിക്കാം. നിങ്ങളുടെ വിളകളുടെ ആരോഗ്യം നിരീക്ഷിക്കുക.`;
-  } else {
-    return `I'm ready to help with your farming activities. You can ask about weather, market prices, pests, government schemes. Monitor your crop health regularly.`;
-  }
-};
+// Removed local rule-based responder; using backend LLM for real-time answers

@@ -2,6 +2,7 @@ import express from 'express';
 import ChatHistory from '../models/ChatHistory.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { generateSessionId } from '../utils/chat.js';
+import { generateLLMResponse } from '../utils/llm.js';
 
 const router = express.Router();
 
@@ -41,7 +42,7 @@ router.post('/session', authenticateToken, async (req, res) => {
 router.post('/message', authenticateToken, async (req, res) => {
   try {
     const farmerId = req.user.userId;
-    const { sessionId, message, language = 'english', type = 'text' } = req.body;
+    const { sessionId, message, language = 'english', type = 'text', location } = req.body;
 
     if (!sessionId || !message) {
       return res.status(400).json({
@@ -74,8 +75,12 @@ router.post('/message', authenticateToken, async (req, res) => {
       type
     });
 
-    // Generate AI response (mock implementation)
-    const aiResponse = await generateAIResponse(message, language, farmerId);
+    // Generate AI response using provider-agnostic LLM utility
+    const aiResponse = await generateLLMResponse({
+      message,
+      language,
+      location: location && typeof location === 'object' ? location : null
+    });
     
     // Add AI response
     chatSession.messages.push({
@@ -250,72 +255,6 @@ router.delete('/session/:sessionId', authenticateToken, async (req, res) => {
   }
 });
 
-// Mock AI Response Generator
-const generateAIResponse = async (message, language, farmerId) => {
-  try {
-    // In production, this would integrate with OpenAI, Claude, or custom AI model
-    const responses = {
-      english: {
-        greeting: "Hello! I'm your farming assistant. How can I help you today?",
-        weather: "The current weather conditions are favorable for farming activities. Temperature is around 28°C with moderate humidity.",
-        pest: "Based on current conditions, watch out for common pests like aphids and whiteflies. Consider organic treatments first.",
-        crop: "For better crop yield, ensure proper spacing, adequate watering, and timely fertilization.",
-        default: "I understand your question about farming. Let me provide you with relevant information and recommendations."
-      },
-      malayalam: {
-        greeting: "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ കാർഷിക സഹായിയാണ്. ഇന്ന് എങ്ങനെ സഹായിക്കാം?",
-        weather: "നിലവിലെ കാലാവസ്ഥ കാർഷിക പ്രവർത്തനങ്ങൾക്ക് അനുകൂലമാണ്. താപനില 28°C ആണ്.",
-        pest: "നിലവിലെ അവസ്ഥകൾ അനുസരിച്ച്, ആഫിഡുകളും വൈറ്റ്ഫ്ലൈകളും പോലുള്ള പൊതുവായ കീടങ്ങളിൽ നിന്ന് സൂക്ഷിക്കുക.",
-        crop: "മികച്ച വിളവിനായി, ശരിയായ ഇടവിട്ട്, മതിയായ നനയൽ, സമയത്ത് വളപ്രയോഗം ഉറപ്പാക്കുക.",
-        default: "കാർഷികവിഷയത്തെക്കുറിച്ചുള്ള നിങ്ങളുടെ ചോദ്യം ഞാൻ മനസ്സിലാക്കുന്നു."
-      }
-    };
-
-    const langResponses = responses[language] || responses.english;
-    
-    // Simple keyword matching for demo
-    let response = langResponses.default;
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('നമസ്കാരം')) {
-      response = langResponses.greeting;
-    } else if (lowerMessage.includes('weather') || lowerMessage.includes('കാലാവസ്ഥ')) {
-      response = langResponses.weather;
-    } else if (lowerMessage.includes('pest') || lowerMessage.includes('കീടം')) {
-      response = langResponses.pest;
-    } else if (lowerMessage.includes('crop') || lowerMessage.includes('വിള')) {
-      response = langResponses.crop;
-    }
-
-    // Mock metadata for real-time data
-    const metadata = {
-      weatherData: {
-        temperature: 28,
-        humidity: 65,
-        condition: 'sunny'
-      },
-      marketData: {
-        rice: { price: 45, trend: 'up' },
-        coconut: { price: 12, trend: 'stable' }
-      },
-      pestAlerts: [],
-      governmentAdvisories: []
-    };
-
-    return {
-      content: response,
-      metadata
-    };
-
-  } catch (error) {
-    console.error('AI Response generation error:', error);
-    return {
-      content: language === 'malayalam' 
-        ? 'ക്ഷമിക്കണം, ഞാൻ നിങ്ങളുടെ ചോദ്യം മനസ്സിലാക്കാൻ കഴിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക.'
-        : 'Sorry, I couldn\'t understand your question. Please try again.',
-      metadata: {}
-    };
-  }
-};
+// Mock generator removed; handled by utils/llm
 
 export default router;

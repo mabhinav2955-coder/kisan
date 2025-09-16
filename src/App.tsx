@@ -22,6 +22,7 @@ import CommunityForum from './components/CommunityForum';
 import AuthPage from './components/AuthPage';
 import EmptyState from './components/EmptyState';
 import ErrorBoundary from './components/ErrorBoundary';
+import Toast from './components/Toast';
 import { sampleFarmers, getFarmerData, setCurrentFarmer } from './data/mockData';
 import { Activity, Advisory, Farmer } from './types/farmer';
 import { validationService } from './services/validationService';
@@ -38,6 +39,7 @@ function App() {
   const [isCropDiagnosisOpen, setIsCropDiagnosisOpen] = useState(false);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
   const [farmer, setFarmer] = useState<Farmer>(sampleFarmers[0]);
+  const [welcomeToast, setWelcomeToast] = useState<{show: boolean; name: string}>({ show: false, name: '' });
   const [currentFarmerData, setCurrentFarmerData] = useState(getFarmerData('1'));
   const [activities, setActivities] = useState<Activity[]>(currentFarmerData.activities);
 
@@ -48,6 +50,7 @@ function App() {
     setActivities(farmerData.activities);
     setFarmer(loggedInFarmer);
     setIsAuthenticated(true);
+    setWelcomeToast({ show: true, name: loggedInFarmer.name });
   };
 
   const handleLogout = () => {
@@ -294,6 +297,16 @@ function App() {
         onSave={handleSaveActivity}
         crops={currentFarmerData.farm.crops}
       />
+
+      {welcomeToast.show && (
+        <Toast
+          message={`Welcome back, ${welcomeToast.name}!`}
+          subtext="Wishing you a productive day on the farm 🌾"
+          icon={<span className="text-green-600">🌟</span>}
+          duration={7000}
+          onClose={() => setWelcomeToast({ show: false, name: '' })}
+        />
+      )}
 
       {/* Floating Chat Button - Fixed bottom-right */}
       <button

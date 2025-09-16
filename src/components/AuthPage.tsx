@@ -18,29 +18,57 @@ export default function AuthPage({ onLogin, sampleFarmers }: AuthPageProps) {
     district: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isLogin) {
-      // Login logic - check against sample farmers
-      const farmer = sampleFarmers.find(f => f.phone === formData.phone);
-      if (farmer) {
+    try {
+      if (isLogin) {
+        const farmer = sampleFarmers.find(f => f.phone === formData.phone);
+        if (!farmer) {
+          alert('Farmer not found. Please register first or use a sample account.');
+          return;
+        }
+        // Update lastLogin on server (optional)
+        try {
+          await fetch('/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: farmer.phone,
+              name: farmer.name,
+              village: farmer.village,
+              district: farmer.district
+            })
+          });
+        } catch {}
         onLogin(farmer);
       } else {
-        alert('Farmer not found. Please register first or use a sample account.');
+        // Register on server then login locally
+        const resp = await fetch('/api/users/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: formData.phone,
+            name: formData.name,
+            village: formData.village,
+            district: formData.district
+          })
+        });
+        if (!resp.ok) throw new Error('Failed to register');
+        const data = await resp.json();
+        const newFarmer: Farmer = {
+          id: data.user?._id || Date.now().toString(),
+          name: formData.name,
+          phone: formData.phone,
+          village: formData.village,
+          district: formData.district,
+          registrationDate: new Date().toISOString().split('T')[0],
+          profileComplete: true
+        };
+        onLogin(newFarmer);
       }
-    } else {
-      // Registration logic
-      const newFarmer: Farmer = {
-        id: Date.now().toString(),
-        name: formData.name,
-        phone: formData.phone,
-        village: formData.village,
-        district: formData.district,
-        registrationDate: new Date().toISOString().split('T')[0],
-        profileComplete: true
-      };
-      onLogin(newFarmer);
+    } catch (err) {
+      console.error('Auth submit error', err);
+      alert('Something went wrong. Please try again.');
     }
   };
 
@@ -154,6 +182,7 @@ export default function AuthPage({ onLogin, sampleFarmers }: AuthPageProps) {
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   placeholder="+91 9876543210"
                   required
+                  autoFocus
                 />
               </div>
             </div>
@@ -187,6 +216,7 @@ export default function AuthPage({ onLogin, sampleFarmers }: AuthPageProps) {
             >
               {isLogin ? 'Login' : 'Register'}
             </button>
+            <p className="text-xs text-gray-500 text-center">We’ll never share your details. Secured & private.</p>
           </form>
         </div>
 

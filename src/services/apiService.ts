@@ -70,63 +70,86 @@ export interface GovernmentAdvisory {
 }
 
 class ApiService {
-  private baseUrl = 'https://api.example.com'; // Replace with actual API base URL
+  private baseUrl = 'https://api.example.com'; // Replace with actual API base URL (unused for weather)
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes cache timeout
   
-  // Weather API
-  async getWeatherData(latitude: number, longitude: number): Promise<WeatherData> {
-    const cacheKey = `weather_${latitude}_${longitude}`;
+  // Weather API (real: Open-Meteo). If coords missing, use browser geolocation.
+  async getWeatherData(latitude?: number, longitude?: number): Promise<WeatherData & { timestamp: number }> {
+    // Resolve location
+    let lat = latitude;
+    let lon = longitude;
+    if ((lat == null || lon == null) && typeof window !== 'undefined' && 'geolocation' in navigator) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { maximumAge: 600000, timeout: 3000 });
+        });
+        lat = pos.coords.latitude;
+        lon = pos.coords.longitude;
+      } catch {
+        // default to Thiruvananthapuram if geolocation not available
+        lat = 8.5241;
+        lon = 76.9366;
+      }
+    }
+
+    // Final safety defaults
+    lat = lat ?? 8.5241;
+    lon = lon ?? 76.9366;
+
+    const cacheKey = `weather_${lat}_${lon}`;
     
     try {
       // Check cache first
-      const cachedData = await storageService.load<WeatherData>(cacheKey);
+      const cachedData = await storageService.load<WeatherData & { timestamp: number }>(cacheKey);
       if (cachedData && this.isCacheValid(cachedData)) {
         return cachedData;
       }
 
-      // In a real implementation, this would call an actual weather API
-      // For now, we'll return mock data that simulates real-time updates
-      const mockWeatherData: WeatherData = {
+      const params = new URLSearchParams({
+        latitude: String(lat),
+        longitude: String(lon),
+        current: 'temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m',
+        daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum'
+      });
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+      if (!res.ok) throw new Error(`Open-Meteo error: ${res.status}`);
+      const data = await res.json();
+
+      const now: WeatherData & { timestamp: number } = {
         current: {
-          temperature: Math.round(25 + Math.random() * 10), // 25-35°C
-          humidity: Math.round(60 + Math.random() * 30), // 60-90%
-          windSpeed: Math.round(5 + Math.random() * 15), // 5-20 km/h
-          description: ['Sunny', 'Partly Cloudy', 'Cloudy', 'Light Rain'][Math.floor(Math.random() * 4)],
+          temperature: data?.current?.temperature_2m ?? 28,
+          humidity: data?.current?.relative_humidity_2m ?? 70,
+          windSpeed: data?.current?.wind_speed_10m ?? 10,
+          description: typeof data?.current?.weather_code === 'number' ? String(data.current.weather_code) : 'N/A',
           icon: 'sun'
         },
-        forecast: Array.from({ length: 7 }, (_, i) => ({
-          date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          temperature: {
-            min: Math.round(20 + Math.random() * 10),
-            max: Math.round(25 + Math.random() * 15)
-          },
-          humidity: Math.round(50 + Math.random() * 40),
-          rain: Math.round(Math.random() * 100),
-          description: ['Sunny', 'Partly Cloudy', 'Cloudy', 'Light Rain', 'Heavy Rain'][Math.floor(Math.random() * 5)],
-          icon: 'sun'
-        })),
-        alerts: [
-          {
-            type: 'weather',
-            severity: 'medium',
-            title: 'Heavy Rain Warning',
-            description: 'Heavy rainfall expected in the next 24 hours. Take necessary precautions for your crops.',
-            date: new Date().toISOString()
-          }
-        ]
+        forecast: Array.isArray(data?.daily?.time)
+          ? data.daily.time.slice(0, 7).map((d: string, i: number) => ({
+              date: d,
+              temperature: {
+                min: data.daily.temperature_2m_min?.[i] ?? 22,
+                max: data.daily.temperature_2m_max?.[i] ?? 30
+              },
+              humidity: 70,
+              rain: data.daily.precipitation_sum?.[i] ?? 0,
+              description: 'Forecast',
+              icon: 'sun'
+            }))
+          : [],
+        alerts: [],
+        timestamp: Date.now()
       };
       
-      // Cache the data
-      await storageService.save(cacheKey, mockWeatherData);
+      // Cache the data with timestamp
+      await storageService.save(cacheKey, now);
       
-      return mockWeatherData;
+      return now;
     } catch (error) {
       console.error('Error fetching weather data:', error);
       
       // Try to return cached data as fallback
-      const fallbackData = await storageService.load<WeatherData>(cacheKey);
+      const fallbackData = await storageService.load<WeatherData & { timestamp: number }>(cacheKey);
       if (fallbackData) {
-        console.log('Returning cached weather data as fallback');
         return fallbackData;
       }
       
@@ -136,260 +159,72 @@ class ApiService {
     }
   }
 
-  // Market Prices API
-  async getMarketPrices(crop?: string): Promise<MarketPrice[]> {
-    const cacheKey = `market_prices_${crop || 'all'}`;
-    
+  // Market Prices API (backend live route)
+  async getMarketPrices(crop?: string): Promise<MarketPrice[] & any> {
+    const key = `market_prices_${crop || 'all'}`;
+    const cached = await storageService.load<any>(key);
+    if (cached && this.isCacheValid(cached)) return cached;
     try {
-      // Check cache first
-      const cachedData = await storageService.load<MarketPrice[]>(cacheKey);
-      if (cachedData && this.isCacheValid(cachedData)) {
-        return cachedData;
-      }
-
-      // In a real implementation, this would call a market price API
-      const mockPrices: MarketPrice[] = [
-        {
-          crop: 'Rice',
-          malayalam: 'നെല്ല്',
-          currentPrice: 2850 + Math.round(Math.random() * 200 - 100),
-          previousPrice: 2800,
-          market: 'Kottayam Mandi',
-          date: new Date().toISOString().split('T')[0],
-          unit: 'quintal',
-          trend: 'up',
-          changePercent: 1.8
-        },
-        {
-          crop: 'Coconut',
-          malayalam: 'തെങ്ങ്',
-          currentPrice: 12 + Math.round(Math.random() * 4 - 2),
-          previousPrice: 11.5,
-          market: 'Cochin Market',
-          date: new Date().toISOString().split('T')[0],
-          unit: 'piece',
-          trend: 'up',
-          changePercent: 4.3
-        },
-        {
-          crop: 'Pepper',
-          malayalam: 'കുരുമുളക്',
-          currentPrice: 45000 + Math.round(Math.random() * 5000 - 2500),
-          previousPrice: 46500,
-          market: 'Idukki Spice Market',
-          date: new Date().toISOString().split('T')[0],
-          unit: 'quintal',
-          trend: 'down',
-          changePercent: -3.2
-        },
-        {
-          crop: 'Cardamom',
-          malayalam: 'ഏലം',
-          currentPrice: 275000 + Math.round(Math.random() * 10000 - 5000),
-          previousPrice: 270000,
-          market: 'Kumily Market',
-          date: new Date().toISOString().split('T')[0],
-          unit: 'quintal',
-          trend: 'up',
-          changePercent: 1.9
-        },
-        {
-          crop: 'Rubber',
-          malayalam: 'റബ്ബർ',
-          currentPrice: 18500 + Math.round(Math.random() * 1000 - 500),
-          previousPrice: 18200,
-          market: 'Rubber Board',
-          date: new Date().toISOString().split('T')[0],
-          unit: 'quintal',
-          trend: 'up',
-          changePercent: 1.6
-        },
-        {
-          crop: 'Banana',
-          malayalam: 'വാഴ',
-          currentPrice: 2200 + Math.round(Math.random() * 200 - 100),
-          previousPrice: 2200,
-          market: 'Ernakulam Market',
-          date: new Date().toISOString().split('T')[0],
-          unit: 'quintal',
-          trend: 'stable',
-          changePercent: 0
+      const params = crop ? `?crop=${encodeURIComponent(crop)}` : '';
+      const res = await fetch(`/api/data/market-prices${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
         }
-      ];
-
-      if (crop) {
-        return mockPrices.filter(price => 
-          price.crop.toLowerCase().includes(crop.toLowerCase()) ||
-          price.malayalam.includes(crop)
-        );
-      }
-
-      // Cache the data
-      await storageService.save(cacheKey, mockPrices);
-      
-      return mockPrices;
-    } catch (error) {
-      console.error('Error fetching market prices:', error);
-      
-      // Try to return cached data as fallback
-      const fallbackData = await storageService.load<MarketPrice[]>(cacheKey);
-      if (fallbackData) {
-        console.log('Returning cached market prices as fallback');
-        return fallbackData;
-      }
-      
-      // If no cached data, return fallback data
-      const fallbackPrices = this.getFallbackMarketPrices();
-      return fallbackPrices;
+      } as any);
+      if (!res.ok) throw new Error('market');
+      const json = await res.json();
+      const data = json.data || [];
+      const payload = Object.assign([], data, { timestamp: Date.now() });
+      await storageService.save(key, payload);
+      return payload;
+    } catch (e) {
+      if (cached) return cached;
+      return this.getFallbackMarketPrices();
     }
   }
 
   // Pest Alerts API
-  async getPestAlerts(crop?: string, district?: string): Promise<PestAlert[]> {
-    const cacheKey = `pest_alerts_${crop || 'all'}_${district || 'all'}`;
-    
+  async getPestAlerts(crop?: string, district?: string): Promise<PestAlert[] & any> {
+    const key = `pest_alerts_${crop || 'all'}_${district || 'all'}`;
+    const cached = await storageService.load<any>(key);
+    if (cached && this.isCacheValid(cached)) return cached;
     try {
-      // Check cache first
-      const cachedData = await storageService.load<PestAlert[]>(cacheKey);
-      if (cachedData && this.isCacheValid(cachedData)) {
-        return cachedData;
-      }
-
-      const mockPestAlerts: PestAlert[] = [
-        {
-          id: '1',
-          crop: 'Rice',
-          pest: 'Brown Plant Hopper',
-          malayalam: 'ബ്രൗൺ പ്ലാന്റ് ഹോപ്പർ',
-          severity: 'high',
-          description: 'High incidence of brown plant hopper reported in rice fields. Immediate action required.',
-          affectedAreas: ['Kottayam', 'Alappuzha', 'Pathanamthitta'],
-          recommendedAction: 'Apply recommended insecticides and maintain proper water management.',
-          date: new Date().toISOString()
-        },
-        {
-          id: '2',
-          crop: 'Coconut',
-          pest: 'Rhinoceros Beetle',
-          malayalam: 'കാട്ടുമുട്ട',
-          severity: 'medium',
-          description: 'Rhinoceros beetle infestation detected in coconut plantations.',
-          affectedAreas: ['Thrissur', 'Palakkad'],
-          recommendedAction: 'Use pheromone traps and biological control methods.',
-          date: new Date().toISOString()
-        },
-        {
-          id: '3',
-          crop: 'Pepper',
-          pest: 'Foot Rot',
-          malayalam: 'കാല് ചീഞ്ഞ്',
-          severity: 'urgent',
-          description: 'Foot rot disease spreading rapidly in pepper vines due to excessive moisture.',
-          affectedAreas: ['Idukki', 'Wayanad'],
-          recommendedAction: 'Improve drainage and apply fungicides immediately.',
-          date: new Date().toISOString()
-        }
-      ];
-
-      let filteredAlerts = mockPestAlerts;
-
-      if (crop) {
-        filteredAlerts = filteredAlerts.filter(alert => 
-          alert.crop.toLowerCase().includes(crop.toLowerCase())
-        );
-      }
-
-      if (district) {
-        filteredAlerts = filteredAlerts.filter(alert => 
-          alert.affectedAreas.some(area => 
-            area.toLowerCase().includes(district.toLowerCase())
-          )
-        );
-      }
-
-      // Cache the data
-      await storageService.save(cacheKey, filteredAlerts);
-      
-      return filteredAlerts;
-    } catch (error) {
-      console.error('Error fetching pest alerts:', error);
-      
-      // Try to return cached data as fallback
-      const fallbackData = await storageService.load<PestAlert[]>(cacheKey);
-      if (fallbackData) {
-        console.log('Returning cached pest alerts as fallback');
-        return fallbackData;
-      }
-      
-      // If no cached data, return fallback data
+      const params = new URLSearchParams();
+      if (crop) params.set('crop', crop);
+      if (district) params.set('district', district);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await fetch(`/api/data/pest-alerts${qs}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+      } as any);
+      if (!res.ok) throw new Error('pest');
+      const json = await res.json();
+      const data = json.data || [];
+      const payload = Object.assign([], data, { timestamp: Date.now() });
+      await storageService.save(key, payload);
+      return payload;
+    } catch (e) {
+      if (cached) return cached;
       return this.getFallbackPestAlerts();
     }
   }
 
   // Government Advisories API
-  async getGovernmentAdvisories(): Promise<GovernmentAdvisory[]> {
-    const cacheKey = 'government_advisories';
-    
+  async getGovernmentAdvisories(): Promise<GovernmentAdvisory[] & any> {
+    const key = 'government_advisories';
+    const cached = await storageService.load<any>(key);
+    if (cached && this.isCacheValid(cached)) return cached;
     try {
-      // Check cache first
-      const cachedData = await storageService.load<GovernmentAdvisory[]>(cacheKey);
-      if (cachedData && this.isCacheValid(cachedData)) {
-        return cachedData;
-      }
-
-      const mockAdvisories: GovernmentAdvisory[] = [
-        {
-          id: '1',
-          title: 'PM-KISAN Scheme 2024',
-          malayalam: 'പിഎം-കിസാൻ പദ്ധതി 2024',
-          description: 'Direct income support of ₹6,000 per year to all farmer families.',
-          type: 'scheme',
-          priority: 'high',
-          validFrom: '2024-01-01',
-          validTo: '2024-12-31',
-          source: 'Ministry of Agriculture',
-          link: 'https://pmkisan.gov.in'
-        },
-        {
-          id: '2',
-          title: 'Monsoon Advisory 2024',
-          malayalam: 'മൺസൂൺ ഉപദേശം 2024',
-          description: 'Prepare for delayed monsoon. Use water conservation techniques.',
-          type: 'advisory',
-          priority: 'medium',
-          validFrom: new Date().toISOString().split('T')[0],
-          validTo: '2024-09-30',
-          source: 'IMD Kerala'
-        },
-        {
-          id: '3',
-          title: 'Organic Farming Subsidy',
-          malayalam: 'ജൈവ കൃഷി സബ്സിഡി',
-          description: '50% subsidy available for organic farming inputs and certification.',
-          type: 'scheme',
-          priority: 'medium',
-          validFrom: '2024-04-01',
-          validTo: '2024-12-31',
-          source: 'Kerala State Organic Farming Mission',
-          link: 'https://organic.kerala.gov.in'
-        }
-      ];
-
-      // Cache the data
-      await storageService.save(cacheKey, mockAdvisories);
-      
-      return mockAdvisories;
-    } catch (error) {
-      console.error('Error fetching government advisories:', error);
-      
-      // Try to return cached data as fallback
-      const fallbackData = await storageService.load<GovernmentAdvisory[]>(cacheKey);
-      if (fallbackData) {
-        console.log('Returning cached government advisories as fallback');
-        return fallbackData;
-      }
-      
-      // If no cached data, return fallback data
+      const res = await fetch(`/api/data/government-advisories`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+      } as any);
+      if (!res.ok) throw new Error('gov');
+      const json = await res.json();
+      const data = json.data || [];
+      const payload = Object.assign([], data, { timestamp: Date.now() });
+      await storageService.save(key, payload);
+      return payload;
+    } catch (e) {
+      if (cached) return cached;
       return this.getFallbackGovernmentAdvisories();
     }
   }

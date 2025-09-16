@@ -4,6 +4,36 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Public upsert for demo: register/update user basic details by phone
+router.post('/register', async (req, res) => {
+  try {
+    const { phone, name, village, district, language = 'english' } = req.body || {};
+    if (!phone || !name || !village || !district) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    const update = {
+      phone,
+      name,
+      village,
+      district,
+      language,
+      profileComplete: true
+    };
+
+    const user = await User.findOneAndUpdate(
+      { phone },
+      { $set: update },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    return res.json({ success: true, user });
+  } catch (error) {
+    console.error('Register user error:', error);
+    res.status(500).json({ success: false, message: 'Failed to register user' });
+  }
+});
+
 // Get user statistics
 router.get('/stats', authenticateToken, async (req, res) => {
   try {

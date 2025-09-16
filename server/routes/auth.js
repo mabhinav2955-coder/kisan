@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { generateOTP, sendOTP } from '../utils/otp.js';
+import LoginAttempt from '../models/LoginAttempt.js';
 import { validatePhone, validateOTP } from '../utils/validation.js';
 
 const router = express.Router();
@@ -43,6 +44,17 @@ router.post('/send-otp', async (req, res) => {
     // Send OTP (in production, this would send actual SMS)
     await sendOTP(phone, otp);
 
+    // Log attempt (OTP sent)
+    try {
+      await LoginAttempt.create({
+        phone,
+        success: true,
+        reason: 'otp_sent',
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+    } catch {}
+
     res.json({
       success: true,
       message: 'OTP sent successfully',
@@ -74,6 +86,7 @@ router.post('/verify-otp', async (req, res) => {
     // Find user
     const user = await User.findOne({ phone });
     if (!user) {
+      try { await LoginAttempt.create({ phone, success: false, reason: 'user_not_found', ip: req.ip, userAgent: req.headers['user-agent'] }); } catch {}
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -82,6 +95,7 @@ router.post('/verify-otp', async (req, res) => {
 
     // Check OTP
     if (!user.otp || user.otp.code !== otp) {
+      try { await LoginAttempt.create({ phone, success: false, reason: 'invalid_otp', ip: req.ip, userAgent: req.headers['user-agent'] }); } catch {}
       return res.status(400).json({
         success: false,
         message: 'Invalid OTP'
@@ -90,6 +104,7 @@ router.post('/verify-otp', async (req, res) => {
 
     // Check OTP expiration
     if (new Date() > user.otp.expiresAt) {
+      try { await LoginAttempt.create({ phone, success: false, reason: 'otp_expired', ip: req.ip, userAgent: req.headers['user-agent'] }); } catch {}
       return res.status(400).json({
         success: false,
         message: 'OTP has expired'
@@ -108,6 +123,8 @@ router.post('/verify-otp', async (req, res) => {
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '30d' }
     );
+
+    try { await LoginAttempt.create({ phone, success: true, reason: 'login_success', ip: req.ip, userAgent: req.headers['user-agent'] }); } catch {}
 
     res.json({
       success: true,

@@ -52,19 +52,26 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
   const createNewSession = async () => {
     try {
       setIsLoading(true);
-      // Mock API call - in production, this would call the actual backend
-      const sessionId = `session_${Date.now()}`;
+      const resp = await fetch('/api/chat/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!resp.ok) throw new Error('Failed to create session');
+      const data = await resp.json();
+      const chat = data.chatSession;
       const newSession: ChatSession = {
-        id: sessionId,
-        farmerId: 'current-user',
-        sessionId,
-        messages: [],
-        isArchived: false,
-        lastAccessed: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        id: chat._id || chat.sessionId,
+        farmerId: chat.farmerId || 'current-user',
+        sessionId: chat.sessionId,
+        messages: chat.messages || [],
+        isArchived: chat.isArchived || false,
+        lastAccessed: chat.lastAccessed || new Date().toISOString(),
+        createdAt: chat.createdAt || new Date().toISOString(),
+        updatedAt: chat.updatedAt || new Date().toISOString()
       };
-      
       setCurrentSession(newSession);
       setError(null);
     } catch (error) {
@@ -159,7 +166,20 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
       };
       setCurrentSession(updatedSession);
 
-      // Mock API call - in production, this would call the actual backend
+      // Call backend (server route or Vercel function) with optional geolocation for context
+      // Try browser geolocation; ignore failures
+      let location: { lat: number; lon: number } | null = null;
+      try {
+        location = await new Promise((resolve) => {
+          if (!navigator.geolocation) return resolve(null);
+          navigator.geolocation.getCurrentPosition(
+            pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+            () => resolve(null),
+            { maximumAge: 600000, timeout: 3000 }
+          );
+        });
+      } catch {}
+
       const response = await fetch('/api/chat/message', {
         method: 'POST',
         headers: {
@@ -170,7 +190,8 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
           sessionId: currentSession.sessionId,
           message: messageText,
           language,
-          type: messageType
+          type: messageType,
+          location
         })
       });
 
@@ -311,8 +332,8 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
       
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">AI Farming Assistant</h2>
-          <p className="text-gray-600">Get instant answers to your farming questions</p>
+          <h2 className="text-2xl font-bold text-gray-900">Krishi Sakhi 🌾</h2>
+          <p className="text-gray-600">Your lively AI farming companion • Ask anything!</p>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -400,12 +421,24 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
                 Welcome to AI Farming Assistant
               </h3>
               <p className="text-gray-600">
-                Ask me anything about farming, crops, weather, or market prices!
+                Ask me anything about farming, crops, weather, or market prices! ☀️
               </p>
             </div>
           </div>
         ) : (
           <div className="p-4 space-y-4">
+            {/* Quick suggestions */}
+            <div className="flex flex-wrap gap-2">
+              {['Today\'s weather', 'Rice price in market', 'Pest alert for rice', 'Active schemes'].map((q) => (
+                <button
+                  key={q}
+                  onClick={() => setMessage(q)}
+                  className="text-xs px-2 py-1 rounded-full bg-green-50 text-green-700 hover:bg-green-100"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
             {currentSession?.messages.map((msg, index) => (
               <div
                 key={index}

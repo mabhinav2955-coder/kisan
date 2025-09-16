@@ -14,6 +14,7 @@ import activityRoutes from './routes/activities.js';
 import postRoutes from './routes/posts.js';
 import diseaseRoutes from './routes/diseases.js';
 import chatRoutes from './routes/chat.js';
+import dataRoutes from './routes/data.js';
 
 // Load environment variables
 dotenv.config();
@@ -70,6 +71,7 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/diseases', diseaseRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/data', dataRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

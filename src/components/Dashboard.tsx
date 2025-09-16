@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrendingUp, AlertTriangle, CheckCircle, Clock, Sparkles, Zap, Sprout, BookOpen, Award, Camera, Users } from 'lucide-react';
 import WeatherCard from './WeatherCard';
 import AdvisoryCard from './AdvisoryCard';
@@ -27,6 +27,14 @@ export default function Dashboard({
   onAdvisoryAction,
   onEditFarm 
 }: DashboardProps) {
+  const [showWelcome, setShowWelcome] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Show welcome popup for 7 seconds after mount
+    setShowWelcome(true);
+    const t = setTimeout(() => setShowWelcome(false), 7000);
+    return () => clearTimeout(t);
+  }, []);
   const urgentAdvisories = advisories.filter(a => a.priority === 'urgent' || a.priority === 'high');
   const recentActivities = activities.slice(0, 3);
   
@@ -59,6 +67,17 @@ export default function Dashboard({
 
   return (
     <div className="space-y-6">
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
+          <div className="bg-white shadow-xl border border-green-200 rounded-xl px-6 py-4 flex items-center space-x-3 animate-fade-in">
+            <Sprout className="h-6 w-6 text-green-600" />
+            <div>
+              <div className="font-semibold text-gray-900">Welcome back!</div>
+              <div className="text-sm text-gray-600">Glad to see you again. Wishing you a great season! 🌾</div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-green-600 via-green-500 to-green-400 rounded-xl text-white p-6 relative overflow-hidden">
         <div>
