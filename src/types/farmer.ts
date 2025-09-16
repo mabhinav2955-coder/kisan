@@ -6,6 +6,7 @@ export interface Farmer {
   district: string;
   registrationDate: string;
   profileComplete: boolean;
+  token?: string; // JWT token for authentication
   farmDetails?: FarmDetails;
 }
 

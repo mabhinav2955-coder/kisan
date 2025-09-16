@@ -13,6 +13,11 @@ const userSchema = new mongoose.Schema({
     minlength: 2,
     maxlength: 50
   },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6
+  },
   village: {
     type: String,
     required: true

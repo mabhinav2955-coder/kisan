@@ -75,15 +75,11 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
       const response = await fetch('/api/chat/message', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          sessionId: 'floating',
           message: currentMessage,
-          language,
-          type: 'text',
-          location
+          language
         })
       });
 
@@ -92,7 +88,7 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
 
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        message: result.response?.content || '',
+        message: result.reply || 'Unable to fetch response right now. Please try again later.',
         sender: 'assistant',
         timestamp: new Date().toISOString(),
         language,

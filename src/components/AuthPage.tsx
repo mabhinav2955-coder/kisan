@@ -22,52 +22,77 @@ export default function AuthPage({ onLogin, sampleFarmers }: AuthPageProps) {
     e.preventDefault();
     try {
       if (isLogin) {
-        const farmer = sampleFarmers.find(f => f.phone === formData.phone);
-        if (!farmer) {
-          alert('Farmer not found. Please register first or use a sample account.');
-          return;
+        // Login with phone and password
+        const resp = await fetch('/api/users/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: formData.phone,
+            password: formData.password
+          })
+        });
+        
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          const detail = body?.error || 'Login failed';
+          throw new Error(detail);
         }
-        // Update lastLogin on server (optional)
-        try {
-          await fetch('/api/users/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phone: farmer.phone,
-              name: farmer.name,
-              village: farmer.village,
-              district: farmer.district
-            })
-          });
-        } catch {}
+        
+        const data = await resp.json();
+        const farmer: Farmer = {
+          id: data.user.id,
+          name: data.user.name,
+          phone: data.user.phone,
+          village: data.user.village,
+          district: data.user.district,
+          registrationDate: new Date().toISOString().split('T')[0],
+          profileComplete: true,
+          token: data.token
+        };
+        
+        // Store token in localStorage
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+        
         onLogin(farmer);
       } else {
-        // Register on server then login locally
+        // Register new user
         const resp = await fetch('/api/users/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             phone: formData.phone,
             name: formData.name,
+            password: formData.password,
             village: formData.village,
             district: formData.district
           })
         });
+        
         if (!resp.ok) {
           const body = await resp.json().catch(() => ({}));
-          const detail = body?.message || body?.error || 'Failed to register';
+          const detail = body?.error || 'Registration failed';
           throw new Error(detail);
         }
+        
         const data = await resp.json();
         const newFarmer: Farmer = {
-          id: data.user?._id || Date.now().toString(),
+          id: data.user.id,
           name: formData.name,
           phone: formData.phone,
           village: formData.village,
           district: formData.district,
           registrationDate: new Date().toISOString().split('T')[0],
-          profileComplete: true
+          profileComplete: true,
+          token: data.token
         };
+        
+        // Store token in localStorage
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+        
         onLogin(newFarmer);
       }
     } catch (err: any) {
@@ -77,7 +102,28 @@ export default function AuthPage({ onLogin, sampleFarmers }: AuthPageProps) {
     }
   };
 
-  const handleSampleLogin = (farmer: Farmer) => {
+  const handleSampleLogin = async (farmer: Farmer) => {
+    // Get token for sample farmer
+    try {
+      const resp = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: farmer.phone,
+          name: farmer.name,
+          village: farmer.village,
+          district: farmer.district
+        })
+      });
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          farmer.token = data.token;
+        }
+      }
+    } catch {}
     onLogin(farmer);
   };
 

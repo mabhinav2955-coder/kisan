@@ -183,15 +183,11 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
       const response = await fetch('/api/chat/message', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          sessionId: currentSession.sessionId,
           message: messageText,
-          language,
-          type: messageType,
-          location
+          language
         })
       });
 
@@ -201,11 +197,11 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
         // Add AI response
         const aiMessage = {
           role: 'assistant' as const,
-          content: result.response.content,
+          content: result.reply || 'Unable to fetch response right now. Please try again later.',
           language,
           type: 'text' as const,
           timestamp: new Date().toISOString(),
-          metadata: result.response.metadata
+          metadata: result.metadata
         };
 
         const finalSession = {

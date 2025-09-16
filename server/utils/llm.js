@@ -25,9 +25,9 @@ const getProvidersToTry = () => {
   if (forced === PROVIDERS.GEMINI && hasGemini) return [PROVIDERS.GEMINI];
   if (forced === PROVIDERS.GROQ && hasGroq) return [PROVIDERS.GROQ];
 
-  if (hasOpenAI) available.push(PROVIDERS.OPENAI);
-  if (hasGemini) available.push(PROVIDERS.GEMINI);
   if (hasGroq) available.push(PROVIDERS.GROQ);
+  if (hasGemini) available.push(PROVIDERS.GEMINI);
+  if (hasOpenAI) available.push(PROVIDERS.OPENAI);
 
   return available;
 };
@@ -204,7 +204,7 @@ export const generateLLMResponse = async ({ message, language = 'english', locat
       if (provider === PROVIDERS.GROQ) {
         const groq = await initGroq();
         const completion = await groq.chat.completions.create({
-          model: process.env.GROQ_MODEL || 'llama-3.1-70b-versatile',
+          model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
           messages,
           temperature: 0.7
         });

@@ -38,79 +38,52 @@ router.post('/session', authenticateToken, async (req, res) => {
   }
 });
 
-// Send message and get response
-router.post('/message', authenticateToken, async (req, res) => {
+// Simple chat endpoint - no authentication required for demo
+router.post('/message', async (req, res) => {
   try {
-    const farmerId = req.user.userId;
-    const { sessionId, message, language = 'english', type = 'text', location } = req.body;
+    const { message, language = 'english' } = req.body;
 
-    if (!sessionId || !message) {
+    if (!message) {
       return res.status(400).json({
         success: false,
-        message: 'Session ID and message are required'
+        error: 'Message is required'
       });
     }
 
-    // Find or create chat session
-    let chatSession = await ChatHistory.findOne({ 
-      farmerId, 
-      sessionId, 
-      isArchived: false 
-    });
-
-    if (!chatSession) {
-      chatSession = new ChatHistory({
-        farmerId,
-        sessionId,
-        messages: [],
-        isArchived: false
-      });
-    }
-
-    // Add user message
-    chatSession.messages.push({
-      role: 'user',
-      content: message,
-      language,
-      type
-    });
-
-    // Generate AI response using provider-agnostic LLM utility
-    const aiResponse = await generateLLMResponse({
-      message,
-      language,
-      location: location && typeof location === 'object' ? location : null
-    });
+    // Generate AI response using LLM
+    console.log('Generating LLM response for message:', message);
     
-    // Add AI response
-    chatSession.messages.push({
-      role: 'assistant',
-      content: aiResponse.content,
-      language,
-      type: 'text',
-      metadata: aiResponse.metadata
-    });
-
-    chatSession.lastAccessed = new Date();
-    await chatSession.save();
-
-    res.json({
-      success: true,
-      message: 'Message processed successfully',
-      response: {
-        content: aiResponse.content,
-        metadata: aiResponse.metadata
-      },
-      sessionId
-    });
+    try {
+      const aiResponse = await generateLLMResponse({
+        message,
+        language,
+        location: null
+      });
+      
+      console.log('LLM response received:', aiResponse?.content?.substring(0, 100) + '...');
+      
+      res.json({
+        success: true,
+        reply: aiResponse.content || 'Unable to fetch response right now. Please try again later.'
+      });
+    } catch (llmError) {
+      console.error('LLM Error:', llmError.message);
+      console.error('LLM Stack:', llmError.stack);
+      
+      // Fallback response
+      res.json({
+        success: true,
+        reply: 'Unable to fetch response right now. Please try again later.'
+      });
+    }
 
   } catch (error) {
-    console.error('Send message error:', error);
-    const detail = error?.message || 'Unknown error';
-    res.status(500).json({
-      success: false,
-      message: 'Failed to process message',
-      error: detail
+    console.error('Chat error:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.json({
+      success: true,
+      reply: 'Unable to fetch response right now. Please try again later.'
     });
   }
 });
