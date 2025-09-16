@@ -12,7 +12,7 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      message: 'നമസ്കാരം! I am your Krishi Sakhi, your AI farming companion. How can I help you today with your farming needs? You can ask me in English or Malayalam! 🌾',
+      message: 'നമസ്കാരം! 🌾 I\'m Krishi Sakhi, your enthusiastic AI farming companion! I\'m here to help you with everything farming - from crop advice to weather updates, market prices, and pest management! What\'s on your mind today? Tell me about your farm! 🌱',
       sender: 'assistant',
       timestamp: new Date().toISOString(),
       language: 'english',
@@ -104,13 +104,15 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
       if (isSpeaking && voiceService.isSpeechSynthesisSupported()) {
         voiceService.speak(aiResponse.message, language === 'malayalam' ? 'ml-IN' : 'en-US');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating AI response:', error);
+      const backendMessage = (error?.message) || '';
+      const errorText = language === 'malayalam'
+        ? `ക്ഷമിക്കണം, സെർവർ ഒരു പിശക് തിരിച്ചു നൽകി. ${backendMessage ? `വിശദാംശം: ${backendMessage}` : ''} വീണ്ടും ശ്രമിക്കുക.`
+        : `Sorry, the server returned an error. ${backendMessage ? `Details: ${backendMessage}` : ''} Please try again.`;
       const errorResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        message: language === 'malayalam' 
-          ? 'ക്ഷമിക്കണം, ഞാൻ നിങ്ങളുടെ ചോദ്യം മനസ്സിലാക്കാൻ കഴിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക.'
-          : 'Sorry, I couldn\'t process your question. Please try again.',
+        message: errorText.trim(),
         sender: 'assistant',
         timestamp: new Date().toISOString(),
         language,
@@ -274,6 +276,7 @@ export default function ChatInterface({ isOpen, onClose }: ChatInterfaceProps) {
               onClick={handleSendMessage}
               disabled={!newMessage.trim()}
               className="p-2 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg hover:from-green-700 hover:to-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
+              aria-label="Send message"
             >
               <Send className="h-5 w-5" />
             </button>

@@ -106,9 +106,11 @@ router.post('/message', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Send message error:', error);
+    const detail = error?.message || 'Unknown error';
     res.status(500).json({
       success: false,
-      message: 'Failed to process message'
+      message: 'Failed to process message',
+      error: detail
     });
   }
 });

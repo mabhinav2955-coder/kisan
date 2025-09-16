@@ -53,7 +53,11 @@ export default function AuthPage({ onLogin, sampleFarmers }: AuthPageProps) {
             district: formData.district
           })
         });
-        if (!resp.ok) throw new Error('Failed to register');
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          const detail = body?.message || body?.error || 'Failed to register';
+          throw new Error(detail);
+        }
         const data = await resp.json();
         const newFarmer: Farmer = {
           id: data.user?._id || Date.now().toString(),
@@ -66,9 +70,10 @@ export default function AuthPage({ onLogin, sampleFarmers }: AuthPageProps) {
         };
         onLogin(newFarmer);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Auth submit error', err);
-      alert('Something went wrong. Please try again.');
+      const msg = err?.message || 'Something went wrong. Please try again.';
+      alert(msg);
     }
   };
 

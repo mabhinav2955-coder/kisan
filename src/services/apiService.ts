@@ -115,11 +115,45 @@ class ApiService {
       if (!res.ok) throw new Error(`Open-Meteo error: ${res.status}`);
       const data = await res.json();
 
+      const currentTemp = data?.current?.temperature_2m ?? 28;
+      const currentHumidity = data?.current?.relative_humidity_2m ?? 70;
+      const currentWind = data?.current?.wind_speed_10m ?? 10; // km/h (Open-Meteo)
+      const todayRain = Array.isArray(data?.daily?.precipitation_sum) ? (data.daily.precipitation_sum?.[0] ?? 0) : 0;
+
+      const alerts: WeatherData['alerts'] = [];
+      if (todayRain >= 20) {
+        alerts.push({
+          type: 'weather',
+          severity: todayRain >= 50 ? 'urgent' : todayRain >= 35 ? 'high' : 'medium',
+          title: 'Heavy Rainfall Warning',
+          description: `Expected rainfall today: ${todayRain.toFixed(0)} mm. Protect harvested produce and ensure drainage.`,
+          date: new Date().toISOString()
+        });
+      }
+      if (currentWind >= 40) {
+        alerts.push({
+          type: 'weather',
+          severity: currentWind >= 60 ? 'urgent' : currentWind >= 50 ? 'high' : 'medium',
+          title: 'Strong Wind Alert',
+          description: `Wind speeds up to ${currentWind.toFixed(0)} km/h. Secure equipment and structures.`,
+          date: new Date().toISOString()
+        });
+      }
+      if (currentTemp >= 35 && currentHumidity >= 50) {
+        alerts.push({
+          type: 'weather',
+          severity: currentTemp >= 38 ? 'high' : 'medium',
+          title: 'Heat Wave Conditions',
+          description: `High temperature of ${currentTemp.toFixed(0)}°C with humidity ${currentHumidity}%. Irrigate early morning/evening and provide shade.`,
+          date: new Date().toISOString()
+        });
+      }
+
       const now: WeatherData & { timestamp: number } = {
         current: {
-          temperature: data?.current?.temperature_2m ?? 28,
-          humidity: data?.current?.relative_humidity_2m ?? 70,
-          windSpeed: data?.current?.wind_speed_10m ?? 10,
+          temperature: currentTemp,
+          humidity: currentHumidity,
+          windSpeed: currentWind,
           description: typeof data?.current?.weather_code === 'number' ? String(data.current.weather_code) : 'N/A',
           icon: 'sun'
         },
@@ -136,7 +170,7 @@ class ApiService {
               icon: 'sun'
             }))
           : [],
-        alerts: [],
+        alerts,
         timestamp: Date.now()
       };
       
@@ -399,11 +433,36 @@ class ApiService {
   }
 
   private getFallbackPestAlerts(): PestAlert[] {
-    return [];
+    return [
+      {
+        id: 'fallback-1',
+        crop: 'Rice',
+        pest: 'Brown Plant Hopper',
+        malayalam: 'ബ്രൗൺ പ്ലാന്റ് ഹോപ്പർ',
+        severity: 'high',
+        description: 'High incidence reported in paddy fields. Monitor closely.',
+        affectedAreas: ['Kottayam', 'Alappuzha'],
+        recommendedAction: 'Apply recommended insecticide and manage irrigation.',
+        date: new Date().toISOString()
+      }
+    ];
   }
 
   private getFallbackGovernmentAdvisories(): GovernmentAdvisory[] {
-    return [];
+    return [
+      {
+        id: 'pmkisan-fallback',
+        title: 'PM-KISAN Scheme',
+        malayalam: 'പിഎം-കിസാൻ പദ്ധതി',
+        description: 'Direct income support to farmer families (₹6,000/year).',
+        type: 'scheme',
+        priority: 'medium',
+        validFrom: new Date().toISOString().split('T')[0],
+        validTo: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0],
+        source: 'Govt of India',
+        link: 'https://pmkisan.gov.in'
+      }
+    ];
   }
 }
 

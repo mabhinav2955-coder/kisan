@@ -28,7 +28,8 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Vercel function error:', error);
-    res.status(500).json({ success: false, message: 'Failed to process message' });
+    const detail = error?.message || 'Unknown error';
+    res.status(500).json({ success: false, message: 'Failed to process message', error: detail });
   }
 }
 

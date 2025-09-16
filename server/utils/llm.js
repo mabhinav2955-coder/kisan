@@ -12,11 +12,24 @@ const PROVIDERS = {
   GEMINI: 'gemini'
 };
 
-const getProvider = () => {
-  const value = (process.env.LLM_PROVIDER || '').toLowerCase();
-  if (value === PROVIDERS.GROQ) return PROVIDERS.GROQ;
-  if (value === PROVIDERS.GEMINI) return PROVIDERS.GEMINI;
-  return PROVIDERS.OPENAI;
+// Determine configured providers and preferred order
+const getProvidersToTry = () => {
+  const forced = (process.env.LLM_PROVIDER || '').toLowerCase();
+  const available = [];
+
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasGemini = !!process.env.GOOGLE_API_KEY;
+  const hasGroq = !!process.env.GROQ_API_KEY;
+
+  if (forced === PROVIDERS.OPENAI && hasOpenAI) return [PROVIDERS.OPENAI];
+  if (forced === PROVIDERS.GEMINI && hasGemini) return [PROVIDERS.GEMINI];
+  if (forced === PROVIDERS.GROQ && hasGroq) return [PROVIDERS.GROQ];
+
+  if (hasOpenAI) available.push(PROVIDERS.OPENAI);
+  if (hasGemini) available.push(PROVIDERS.GEMINI);
+  if (hasGroq) available.push(PROVIDERS.GROQ);
+
+  return available;
 };
 
 const initOpenAI = async () => {
@@ -58,6 +71,21 @@ export const fetchRealtimeWeather = async (latitude, longitude) => {
   }
 };
 
+// Response variation system to make conversations more dynamic
+const getRandomGreeting = (language) => {
+  const greetings = language === 'malayalam' 
+    ? ['നമസ്കാരം!', 'ഹലോ!', 'എന്താണ് സ്ഥിതി?', 'എങ്ങനെയുണ്ട്?', 'ശുഭദിനം!']
+    : ['Hello there!', 'Hey farmer!', 'Good to see you!', 'Howdy!', 'Greetings!'];
+  return greetings[Math.floor(Math.random() * greetings.length)];
+};
+
+const getRandomEncouragement = (language) => {
+  const encouragements = language === 'malayalam'
+    ? ['നിങ്ങൾക്ക് ഇത് കഴിയും!', 'നിങ്ങളുടെ വിളകൾ നന്ദി പറയും!', 'സന്തോഷകരമായ കൃഷി!', 'അതിശയിക്കുന്ന ജോലി!', 'വിജയം നിങ്ങളുടെതാണ്!']
+    : ['You\'ve got this!', 'Your crops will thank you!', 'Happy farming!', 'Keep up the great work!', 'Success is yours!'];
+  return encouragements[Math.floor(Math.random() * encouragements.length)];
+};
+
 const buildSystemPrompt = (language, context) => {
   const lang = language === 'malayalam' ? 'Malayalam' : 'English';
   const weather = context?.weather ? `Weather: ${JSON.stringify(context.weather)}` : 'Weather: unavailable';
@@ -70,20 +98,66 @@ const buildSystemPrompt = (language, context) => {
   const schemes = Array.isArray(context?.advisories) && context.advisories.length
     ? `Schemes: ${context.advisories.slice(0, 2).map(s => s.title).join('; ')}`
     : 'Schemes: none';
+  
+  // Add random variation to make responses more dynamic
+  const randomGreeting = getRandomGreeting(language);
+  const randomEncouragement = getRandomEncouragement(language);
+  
   const guidelines = [
-    `You are Krishi Sakhi, a lively, warm, and proactive agricultural assistant. Reply in ${lang}.`,
-    'Use an encouraging tone with short friendly emojis occasionally (🌾, ☀️, ✅). Keep answers concise, practical, and safe.',
-    'If unsure, say what is known and suggest next steps or trusted sources.',
-    'Prefer organic and locally appropriate recommendations where possible.',
-    'If asked outside agriculture, still answer helpfully as a general assistant.'
+    `You are Krishi Sakhi, Kerala's most enthusiastic and lively AI farming companion! Reply in ${lang}.`,
+    '',
+    'PERSONALITY TRAITS:',
+    '- Be genuinely excited about farming and show authentic care for farmers',
+    '- Use warm, friendly greetings and show interest in their farming journey',
+    '- Be curious about their specific situation and ask thoughtful follow-up questions',
+    '- Show empathy when they face challenges and celebrate their successes',
+    '- Use farming metaphors and analogies that resonate with Kerala farmers',
+    '- Be slightly informal and conversational, like talking to a knowledgeable friend',
+    '',
+    'CONVERSATION STYLE:',
+    '- Vary your opening: Use greetings like "Namaskaram!", "Hello there!", "Hey farmer!", or "Good to see you!"',
+    '- Ask engaging questions: "How\'s your farm doing?", "What\'s your main concern right now?", "Tell me about your crops!"',
+    '- Use expressions of enthusiasm: "That\'s fantastic!", "Wonderful!", "Amazing work!", "I love that!"',
+    '- Show genuine interest: "That sounds interesting!", "Tell me more about that!", "I\'d love to help!"',
+    '- Use rhetorical questions: "Isn\'t that exciting?", "Can you believe it?", "How cool is that?"',
+    '',
+    'KERALA CULTURAL CONNECTIONS:',
+    '- Reference local festivals: Onam, Vishu, Thrissur Pooram when relevant',
+    '- Mention Kerala weather patterns: monsoon seasons, summer heat, coastal climate',
+    '- Talk about local crops: rice, coconut, spices, rubber, cashew, banana',
+    '- Use Malayalam farming terms occasionally: "vayal" (paddy field), "kalam" (season)',
+    '- Reference local farming practices and traditions',
+    '',
+    'EMOJI USAGE:',
+    '- Use 2-3 relevant emojis per response: 🌾🌱☀️💧🌿🍃🌾🌽🥬🥕🌶️🥥🍌',
+    '- Match emojis to content: weather (☀️🌧️), crops (🌾🌱), success (✅🎉), encouragement (💪🌟)',
+    '',
+    'RESPONSE STRUCTURE:',
+    '- Start with a warm greeting or acknowledgment',
+    '- Provide helpful, practical advice',
+    '- Ask a follow-up question to keep conversation flowing',
+    '- End with encouragement or positive reinforcement',
+    '',
+    'QUICK RESPONSE TEMPLATES FOR COMMON QUESTIONS:',
+    '- Weather questions: "Looking at today\'s conditions..." + practical advice + "How\'s your field handling this weather?"',
+    '- Crop advice: "Great question about [crop]!" + specific tips + "What stage is your [crop] at right now?"',
+    '- Market prices: "I see you\'re interested in [crop] prices..." + current data + "Are you planning to sell soon?"',
+    '- Pest problems: "Oh no, dealing with [pest] can be tricky!" + solutions + "How long have you noticed this issue?"',
+    '- General farming: "Farming is such a beautiful journey!" + advice + "What\'s your favorite part of farming?"',
+    '',
+    'ENCOURAGEMENT ENDINGS:',
+    `- Use varied encouraging closings: "${randomEncouragement}"`,
+    '- Other options: "You\'ve got this!", "Your crops will thank you!", "Happy farming!", "Keep up the amazing work!"',
+    '- Malayalam: "നിങ്ങൾക്ക് ഇത് കഴിയും!", "സന്തോഷകരമായ കൃഷി!", "വിജയം നിങ്ങളുടെതാണ്!"',
+    '',
+    'IMPORTANT: Always be helpful, accurate, and encouraging. If unsure about something, say so and suggest consulting local agricultural officers or experts.'
   ].join('\n');
   return `${guidelines}\n\nContext\n${weather}\n${market}\n${pest}\n${schemes}`;
 };
 
 export const generateLLMResponse = async ({ message, language = 'english', location }) => {
-  const provider = getProvider();
+  const providers = getProvidersToTry();
   const weather = location ? await fetchRealtimeWeather(location.lat, location.lon) : null;
-  // Fetch additional context in parallel (Kerala-focused)
   const [market, pestAlerts, advisories] = await Promise.all([
     fetchMarketPrices(),
     fetchPestAlerts(),
@@ -96,35 +170,55 @@ export const generateLLMResponse = async ({ message, language = 'english', locat
     { role: 'user', content: message }
   ];
 
-  if (provider === PROVIDERS.GROQ) {
-    const groq = await initGroq();
-    const completion = await groq.chat.completions.create({
-      model: process.env.GROQ_MODEL || 'llama-3.1-70b-versatile',
-      messages,
-      temperature: 0.3
-    });
-    const content = completion?.choices?.[0]?.message?.content?.trim() || '';
-    return { content, metadata: { provider, weatherData: weather, marketData: market, pestAlerts, governmentAdvisories: advisories } };
+  if (!providers.length) {
+    const reason = 'No LLM provider configured. Set OPENAI_API_KEY, GOOGLE_API_KEY, or GROQ_API_KEY.';
+    throw new Error(reason);
   }
 
-  if (provider === PROVIDERS.GEMINI) {
-    const genAI = await initGemini();
-    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-1.5-flash' });
-    const prompt = `${systemPrompt}\n\nUser: ${message}`;
-    const result = await model.generateContent(prompt);
-    const content = result?.response?.text()?.trim() || '';
-    return { content, metadata: { provider, weatherData: weather, marketData: market, pestAlerts, governmentAdvisories: advisories } };
+  const errors = [];
+
+  for (const provider of providers) {
+    try {
+      if (provider === PROVIDERS.OPENAI) {
+        const openai = await initOpenAI();
+        const completion = await openai.chat.completions.create({
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages,
+          temperature: 0.7
+        });
+        const content = completion?.choices?.[0]?.message?.content?.trim() || '';
+        if (content) return { content, metadata: { provider, weatherData: weather, marketData: market, pestAlerts, governmentAdvisories: advisories } };
+        throw new Error('Empty response from OpenAI');
+      }
+
+      if (provider === PROVIDERS.GEMINI) {
+        const genAI = await initGemini();
+        const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-1.5-flash' });
+        const prompt = `${systemPrompt}\n\nUser: ${message}`;
+        const result = await model.generateContent(prompt);
+        const content = result?.response?.text()?.trim() || '';
+        if (content) return { content, metadata: { provider, weatherData: weather, marketData: market, pestAlerts, governmentAdvisories: advisories } };
+        throw new Error('Empty response from Gemini');
+      }
+
+      if (provider === PROVIDERS.GROQ) {
+        const groq = await initGroq();
+        const completion = await groq.chat.completions.create({
+          model: process.env.GROQ_MODEL || 'llama-3.1-70b-versatile',
+          messages,
+          temperature: 0.7
+        });
+        const content = completion?.choices?.[0]?.message?.content?.trim() || '';
+        if (content) return { content, metadata: { provider, weatherData: weather, marketData: market, pestAlerts, governmentAdvisories: advisories } };
+        throw new Error('Empty response from Groq');
+      }
+    } catch (err) {
+      errors.push(`${provider}: ${err?.message || 'unknown error'}`);
+      // Try next provider
+    }
   }
 
-  // Default: OpenAI
-  const openai = await initOpenAI();
-  const completion = await openai.chat.completions.create({
-    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-    messages,
-    temperature: 0.3
-  });
-  const content = completion?.choices?.[0]?.message?.content?.trim() || '';
-  return { content, metadata: { provider, weatherData: weather, marketData: market, pestAlerts, governmentAdvisories: advisories } };
+  throw new Error(`All providers failed. ${errors.join(' | ')}`);
 };
 
 export default {

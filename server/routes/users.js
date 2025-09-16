@@ -12,8 +12,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
+    // Normalize Indian phone numbers: keep digits, use last 10 digits
+    const digitsOnly = String(phone).replace(/\D/g, '');
+    const normalizedPhone = digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly;
+    const isValidPhone = /^[6-9]\d{9}$/.test(normalizedPhone);
+    if (!isValidPhone) {
+      return res.status(400).json({ success: false, message: 'Invalid phone number. Enter 10 digits starting with 6-9.' });
+    }
+
     const update = {
-      phone,
+      phone: normalizedPhone,
       name,
       village,
       district,
@@ -22,15 +30,15 @@ router.post('/register', async (req, res) => {
     };
 
     const user = await User.findOneAndUpdate(
-      { phone },
+      { phone: normalizedPhone },
       { $set: update },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true, context: 'query' }
     );
 
     return res.json({ success: true, user });
   } catch (error) {
     console.error('Register user error:', error);
-    res.status(500).json({ success: false, message: 'Failed to register user' });
+    res.status(500).json({ success: false, message: 'Failed to register user', error: error?.message || 'unknown error' });
   }
 });
 

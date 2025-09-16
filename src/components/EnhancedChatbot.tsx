@@ -220,11 +220,13 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
           voiceService.speak(result.response.content, language === 'malayalam' ? 'ml-IN' : 'en-US');
         }
       } else {
-        throw new Error('Failed to get response');
+        const result = await response.json().catch(() => ({}));
+        const detail = result?.error || 'Failed to get response';
+        throw new Error(detail);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      setError('Failed to send message. Please try again.');
+      setError(error?.message || 'Failed to send message. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -333,7 +335,7 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Krishi Sakhi 🌾</h2>
-          <p className="text-gray-600">Your lively AI farming companion • Ask anything!</p>
+          <p className="text-gray-600">Your enthusiastic AI farming companion • Ready to help with everything farming! 🌱✨</p>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -418,10 +420,10 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
             <div className="text-center">
               <Leaf className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Welcome to AI Farming Assistant
+                Welcome to Krishi Sakhi! 🌾
               </h3>
               <p className="text-gray-600">
-                Ask me anything about farming, crops, weather, or market prices! ☀️
+                I'm your lively AI farming companion! Ask me anything about farming, crops, weather, or market prices! Let's make your farming journey amazing! 🌱☀️
               </p>
             </div>
           </div>
@@ -429,11 +431,11 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
           <div className="p-4 space-y-4">
             {/* Quick suggestions */}
             <div className="flex flex-wrap gap-2">
-              {['Today\'s weather', 'Rice price in market', 'Pest alert for rice', 'Active schemes'].map((q) => (
+              {['What\'s today\'s weather like? ☀️', 'How are rice prices? 📈', 'Any pest alerts? 🐛', 'Tell me about schemes! 💰', 'Crop advice needed! 🌱', 'Market trends? 📊'].map((q) => (
                 <button
                   key={q}
                   onClick={() => setMessage(q)}
-                  className="text-xs px-2 py-1 rounded-full bg-green-50 text-green-700 hover:bg-green-100"
+                  className="text-xs px-3 py-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
                 >
                   {q}
                 </button>
@@ -491,7 +493,7 @@ export default function EnhancedChatbot({ onBack }: EnhancedChatbotProps) {
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={`Ask me anything about farming... (${language === 'malayalam' ? 'മലയാളത്തിൽ' : 'in English'})`}
+            placeholder={`What's on your mind today? Ask me anything about farming! 🌾 (${language === 'malayalam' ? 'മലയാളത്തിൽ' : 'in English'})`}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             disabled={isLoading}
           />

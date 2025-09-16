@@ -1,6 +1,15 @@
 // Test setup file
 import '@testing-library/jest-dom';
 
+// Polyfill fetch for node test environment
+import 'whatwg-fetch';
+
+// Polyfill scrollIntoView in JSDOM
+if (!Element.prototype.scrollIntoView) {
+  // @ts-ignore
+  Element.prototype.scrollIntoView = function () {};
+}
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

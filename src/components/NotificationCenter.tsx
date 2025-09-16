@@ -250,62 +250,147 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
           </div>
         </div>
 
-        {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Notifications List - Separated by category */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
             </div>
-          ) : notificationList.length === 0 ? (
-            <div className="text-center py-8">
-              <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Notifications</h3>
-              <p className="text-gray-600">You're all caught up!</p>
-            </div>
           ) : (
-            notificationList.map((notification) => (
-            <div
-              key={notification.id}
-              onClick={() => markAsRead(notification.id)}
-              className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-sm ${
-                getNotificationColor(notification.type)
-              } ${!notification.read ? 'ring-2 ring-green-200' : ''}`}
-            >
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  {getNotificationIcon(notification.type)}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-semibold text-gray-900 truncate">
-                      {notification.title}
-                    </h4>
-                    {!notification.read && (
-                      <div className="h-2 w-2 bg-green-600 rounded-full"></div>
-                    )}
+            <>
+              {/* Weather Alerts */}
+              {notificationList.filter(n => n.category === 'weather').length === 0 ? null : (
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <CloudRain className="h-5 w-5 text-blue-600" />
+                    <h4 className="text-sm font-semibold text-gray-900">Weather Alerts</h4>
                   </div>
-                  
-                  <p className="text-sm text-gray-700 mb-2">{notification.message}</p>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">
-                      {new Date(notification.timestamp).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                    
-                    {notification.actionUrl && (
-                      <button className="text-xs text-green-600 hover:text-green-700 font-medium">
-                        Take Action
-                      </button>
-                    )}
-                  </div>
+                  {notificationList.filter(n => n.category === 'weather').map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => markAsRead(notification.id)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-sm ${getNotificationColor(notification.type)} ${!notification.read ? 'ring-2 ring-green-200' : ''}`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">{getNotificationIcon(notification.type)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h5 className="text-sm font-semibold text-gray-900 truncate">{notification.title}</h5>
+                            {!notification.read && <div className="h-2 w-2 bg-green-600 rounded-full"></div>}
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">{notification.message}</p>
+                          <span className="text-xs text-gray-500">
+                            {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </div>
-          ))
+              )}
+
+              {/* Market Prices */}
+              {notificationList.filter(n => n.category === 'market').length === 0 ? null : (
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    <h4 className="text-sm font-semibold text-gray-900">Market Prices</h4>
+                  </div>
+                  {notificationList.filter(n => n.category === 'market').map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => markAsRead(notification.id)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-sm ${getNotificationColor(notification.type)} ${!notification.read ? 'ring-2 ring-green-200' : ''}`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">{getNotificationIcon(notification.type)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h5 className="text-sm font-semibold text-gray-900 truncate">{notification.title}</h5>
+                            {!notification.read && <div className="h-2 w-2 bg-green-600 rounded-full"></div>}
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">{notification.message}</p>
+                          <span className="text-xs text-gray-500">
+                            {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Government Schemes */}
+              {notificationList.filter(n => n.category === 'scheme').length === 0 ? null : (
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <h4 className="text-sm font-semibold text-gray-900">Government Schemes</h4>
+                  </div>
+                  {notificationList.filter(n => n.category === 'scheme').map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => markAsRead(notification.id)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-sm ${getNotificationColor(notification.type)} ${!notification.read ? 'ring-2 ring-green-200' : ''}`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">{getNotificationIcon(notification.type)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h5 className="text-sm font-semibold text-gray-900 truncate">{notification.title}</h5>
+                            {!notification.read && <div className="h-2 w-2 bg-green-600 rounded-full"></div>}
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">{notification.message}</p>
+                          <span className="text-xs text-gray-500">
+                            {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Other / General */}
+              {notificationList.filter(n => !['weather','market','scheme'].includes(n.category)).length === 0 ? null : (
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Bell className="h-5 w-5 text-gray-600" />
+                    <h4 className="text-sm font-semibold text-gray-900">Other</h4>
+                  </div>
+                  {notificationList.filter(n => !['weather','market','scheme'].includes(n.category)).map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => markAsRead(notification.id)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-sm ${getNotificationColor(notification.type)} ${!notification.read ? 'ring-2 ring-green-200' : ''}`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">{getNotificationIcon(notification.type)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h5 className="text-sm font-semibold text-gray-900 truncate">{notification.title}</h5>
+                            {!notification.read && <div className="h-2 w-2 bg-green-600 rounded-full"></div>}
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">{notification.message}</p>
+                          <span className="text-xs text-gray-500">
+                            {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Empty state if nothing at all */}
+              {notificationList.length === 0 && (
+                <div className="text-center py-8">
+                  <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Notifications</h3>
+                  <p className="text-gray-600">You're all caught up!</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
