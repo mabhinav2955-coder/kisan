@@ -14,7 +14,9 @@ import activityRoutes from './routes/activities.js';
 import postRoutes from './routes/posts.js';
 import diseaseRoutes from './routes/diseases.js';
 import chatRoutes from './routes/chat.js';
-import simpleChatRoutes from './routes/simple-chat.js';
+// simpleChatRoutes was temporary; ensure it's not required for prod
+// import simpleChatRoutes from './routes/simple-chat.js';
+import mobileRoutes from './routes/mobile.js';
 import dataRoutes from './routes/data.js';
 
 // Load environment variables
@@ -51,7 +53,8 @@ app.use(morgan('combined'));
 // MongoDB connection
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/kisan-app', {
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/kisan-app';
+    const conn = await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
@@ -72,8 +75,11 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/diseases', diseaseRoutes);
 app.use('/api/chat', chatRoutes);
-app.use('/api/simple-chat', simpleChatRoutes);
 app.use('/api/data', dataRoutes);
+
+// Mobile-friendly minimal routes at root for emulator/simulator usage
+// POST /register and POST /chat
+app.use('/', mobileRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

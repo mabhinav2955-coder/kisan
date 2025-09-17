@@ -73,6 +73,15 @@ class ApiService {
   private baseUrl = 'https://api.example.com'; // Replace with actual API base URL (unused for weather)
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes cache timeout
   
+  // Resolve base URL for mobile and web
+  getBaseUrl(): string {
+    // Android emulator maps 10.0.2.2 to host loopback
+    if (typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '')) {
+      return 'http://10.0.2.2:5000';
+    }
+    return 'http://localhost:5000';
+  }
+  
   // Weather API (real: Open-Meteo). If coords missing, use browser geolocation.
   async getWeatherData(latitude?: number, longitude?: number): Promise<WeatherData & { timestamp: number }> {
     // Resolve location
@@ -260,6 +269,36 @@ class ApiService {
     } catch (e) {
       if (cached) return cached;
       return this.getFallbackGovernmentAdvisories();
+    }
+  }
+
+  // Mobile registration (minimal backend)
+  async mobileRegister(payload: { name: string; phone: string; password: string }): Promise<{ success: boolean; message?: string; error?: string; }> {
+    try {
+      const resp = await fetch(`${this.getBaseUrl()}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      } as any);
+      const data = await resp.json();
+      return data;
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Network error' };
+    }
+  }
+
+  // Mobile chat (minimal backend)
+  async mobileChat(message: string): Promise<{ reply: string }> {
+    try {
+      const resp = await fetch(`${this.getBaseUrl()}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      } as any);
+      const data = await resp.json();
+      return { reply: data?.reply || 'Unable to fetch response right now. Please try again later.' };
+    } catch {
+      return { reply: 'Unable to fetch response right now. Please try again later.' };
     }
   }
 
