@@ -94,6 +94,10 @@ export default function AuthPage({ onLogin, sampleFarmers }: AuthPageProps) {
         }
         
         onLogin(newFarmer);
+        // Redirect straight to dashboard after successful registration
+        try {
+          window.location.assign('/dashboard');
+        } catch {}
       }
     } catch (err: any) {
       console.error('Auth submit error', err);
