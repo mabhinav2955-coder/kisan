@@ -193,7 +193,7 @@ export const generateLLMResponse = async ({ message, language = 'english', locat
 
       if (provider === PROVIDERS.GEMINI) {
         const genAI = await initGemini();
-        const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.5-pro' });
         const prompt = `${systemPrompt}\n\nUser: ${message}`;
         const result = await model.generateContent(prompt);
         const content = result?.response?.text()?.trim() || '';
