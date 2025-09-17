@@ -15,6 +15,10 @@ const normalizePhone = (phone) => {
 // POST /register
 router.post('/register', async (req, res) => {
   try {
+    if (MobileUser.db?.readyState !== 1) {
+      console.error('DB not connected. readyState:', MobileUser.db?.readyState);
+      return res.status(503).json({ success: false, error: 'Service unavailable. Try again shortly.' });
+    }
     const { name, phone, password } = req.body || {};
     if (!name || !phone || !password) {
       return res.status(400).json({ success: false, error: 'All fields required' });
@@ -31,7 +35,8 @@ router.post('/register', async (req, res) => {
     return res.json({ success: true, message: 'User registered successfully' });
   } catch (err) {
     console.error('Mobile /register error:', err);
-    return res.status(500).json({ success: false, error: 'Registration failed. Please try again.' });
+    const msg = err?.code === 11000 ? 'User already exists' : 'Registration failed. Please try again.';
+    return res.status(500).json({ success: false, error: msg });
   }
 });
 

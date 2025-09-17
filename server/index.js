@@ -6,6 +6,8 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -19,8 +21,16 @@ import chatRoutes from './routes/chat.js';
 import mobileRoutes from './routes/mobile.js';
 import dataRoutes from './routes/data.js';
 
-// Load environment variables
+// Load environment variables (load local .env; if empty, also attempt project root .env)
 dotenv.config();
+if (!process.env.OPENAI_API_KEY && !process.env.GOOGLE_API_KEY && !process.env.GROQ_API_KEY) {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const rootEnvPath = path.resolve(__dirname, '../.env');
+    dotenv.config({ path: rootEnvPath, override: false });
+  } catch {}
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -57,6 +67,7 @@ const connectDB = async () => {
     const conn = await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
