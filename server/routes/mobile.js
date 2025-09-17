@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import MobileUser from '../models/MobileUser.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
+import { Groq } from 'groq-sdk';
 
 const router = express.Router();
 
@@ -40,9 +41,28 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Select LLM provider (OpenAI primary as per spec, fallback Gemini)
+// Select LLM provider (Groq primary for reliability, fallback Gemini, then OpenAI)
 const getChatReply = async (message) => {
-  // Try OpenAI first
+  // Try Groq first
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const completion = await groq.chat.completions.create({
+        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: 'You are a lively, helpful Kerala farming assistant. Be concise, friendly, and practical.' },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.75
+      });
+      const text = completion?.choices?.[0]?.message?.content?.trim();
+      if (text) return text;
+    } catch (e) {
+      console.error('Groq error:', e?.message || e);
+    }
+  }
+
+  // Try OpenAI
   if (process.env.OPENAI_API_KEY) {
     try {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
